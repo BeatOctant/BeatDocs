@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/engine-runtime/params.schema.json",
+  "title": "契約1（OctantCompass・OctantHarvest → OctantVector） recommend と describe の params",
+  "description": "「最近」の範囲、難易度合わせと個人化の数値。値は OctantCompass が設定 JSON（契約3（OctantPath ↔ OctantCompass））から渡し、省いた項目は既定値を使う。知らないキーは無視する。各キーの既定値の場所は `x-defaultIn` にある。`OctantVector` とした既定値は OctantSpecs ではまだ決めておらず、OctantVector の仮の値。キーを足すのはマイナー版、消すか意味を変えるのはメジャー版。`likeMinPlays` は 2026-10-10 から使わないキーだったが OctantPath が送らなくなり（OctantPath #28）、OctantVector も読まないので、この一覧から外した（知らないキーとして無視される。次のメジャー版で消す決まりはそのまま）。",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "minViewWeight": {
+      "description": "候補が持っていなければならないビューの重みの割合（OctantVector 法 3.1）",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "includeKnown": {
+      "description": "すでにプレイ・投票・お気に入りしたマップも出すか",
+      "type": "boolean",
+      "x-defaultIn": "OctantVector"
+    },
+    "recentPlays": {
+      "description": "ジャンルの語の入口で「最近」とみなすプレイの数",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "OctantVector"
+    },
+    "genreTopShare": {
+      "description": "ジャンルの語で絞り込むとき、語に近い順に残すマップの割合",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "narrowTopMaps": {
+      "description": "要求の narrow で絞り込むとき、残すマップの数",
+      "type": "integer",
+      "minimum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "narrowWiden": {
+      "description": "narrow で残したマップが count に足りないとき、narrowTopMaps に掛けて広げる倍率（足りるか全部入るまで繰り返す。まれなプレイスタイルの譜面のため）。仮の値で既定は 3（2026-10-13。OctantVector 0.3.28 の実装に合わせて記録）",
+      "type": "integer",
+      "minimum": 2,
+      "x-defaultIn": "OctantVector"
+    },
+    "seedTasteWeight": {
+      "description": "起点の譜面があるとき、その人の好みを混ぜる割合",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "mapsPerSong": {
+      "description": "一覧に入れる、同じ曲の Map（別のマッパーが作った Map）の数。0 なら絞らない。同じ曲の見分け方は OctantVector 法 3.4（octantvector/law.md）",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "OctantVector"
+    },
+    "mapsPerArtist": {
+      "description": "一覧に入れる、同じアーティスト（アーティスト ID の組が全部一致する Map）の Map の数。0 なら絞らない。アーティスト ID のない Map は数えない。見分け方は OctantVector 法 3.4（octantvector/law.md）。既定は 3（2026-10-12 決定）",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "octantvector/law.md"
+    },
+    "sameSongCosine": {
+      "description": "2 つの Map を同じ曲とみなす、音楽のビューの近さ（cosine の平均）の下限",
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "features": {
+      "description": "距離に使う譜面の特性と重み（特性の名前をキー、重みを値にした辞書）",
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "k": {
+      "description": "距離を平均する、近い得意な譜面の数",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "normalPercentile": {
+      "description": "「ふつう」とするパーセンタイル",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "strongRecentClears": {
+      "description": "実力に使う最近のクリアの数",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "minClears": {
+      "description": "実力の推定に要るクリアの数",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "minFailsForCurve": {
+      "description": "クリアできる見込みの曲線に要る失敗の数。苦手な向きは、得意な譜面の集まりの一番古いクリアからの失敗でこれを数える",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "directionShrinkPlays": {
+      "description": "学んだ苦手な向きの重みと設定の重みが半々になる、最近のプレイ（クリアと失敗）の数 n0。仮の値で既定は 100（OctantVector 0.5.0）",
+      "type": "number",
+      "minimum": 0,
+      "x-defaultIn": "OctantVector"
+    },
+    "toleranceSd": {
+      "description": "許容幅（クリアした譜面の距離のばらつきの何倍か）",
+      "type": "number",
+      "minimum": 0,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "toleranceMaxSd": {
+      "description": "許容幅の上限（候補が足りないときに広げる上限。ばらつきの何倍か）",
+      "type": "number",
+      "minimum": 0,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "penaltyWeight": {
+      "description": "並べるときの減点の重み",
+      "type": "number",
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "challengeClearChance": {
+      "description": "挑戦の狙いのクリアのしやすさ",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "warmupScale": {
+      "description": "慣らしの距離（ふつうの狙いに対する割合）",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-defaultIn": "plans/difficulty-fit.md#設定"
+    }
+  }
+}

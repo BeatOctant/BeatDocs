@@ -1,0 +1,637 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: MOD ↔ OctantCompass API（契約3（OctantPath ↔ OctantCompass））
+  version: "2.0"
+  description: |
+    ゲーム内の MOD（OctantPath）とゲーム外の推薦サーバー（OctantCompass）の HTTP API。項目の形と意味はこのファイルと、ここから参照する schemas/ が正本。
+    共通ルールと、操作をまたぐ振る舞いは contracts/mod-api.md にある。
+security:
+  - bearerAuth: []
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      summary: 接続状態の確認
+      description: |
+        MOD はこれだけを見て、接続中か未接続かを判断する。トークンは要らず、常に 200 を返す。
+        有効なトークンが付いていれば、その環境について `paired: true`、この起動を表す `instanceId`、持っている signal の件数 `signals` も返す。トークンが無効でも 401 にはしない。
+        バージョンの食い違いでも 426 を返さない（`/v1/health` 以外が対象）。
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      responses:
+        "200":
+          description: 接続状態
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /v1/pair:
+    post:
+      operationId: pair
+      summary: ペアリング
+      description: |
+        合言葉が正しければ新しい環境を登録し、その環境のトークンを返す。手順は契約6（つなぐ側 ↔ OctantCompass）。トークンは要らない。
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PairRequest"
+      responses:
+        "200":
+          description: その環境のトークン
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "426":
+          $ref: "#/components/responses/VersionMismatch"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/recommendations:
+    post:
+      operationId: recommend
+      summary: 推薦の要求
+      description: |
+        応答の順位は契約1（OctantCompass・OctantHarvest → OctantVector）の `recommend` の順のまま。OctantCompass も MOD も推薦の方針として並べ替えない。理由は表示に使う。
+        難易度が `auto` のときは、OctantCompass が session context から狙いを選ぶ。
+        推薦の要求は表示の直前でなくても出せる。件数に足りないときは足りないまま返す。
+        応答にマップキーは入れない。導入済みのマップも推薦に入る。
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationRequest"
+      responses:
+        "200":
+          description: 推薦の一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
+        "400":
+          description: 要求の形が違う、契約1（OctantCompass・OctantHarvest → OctantVector）の `RequestError`、または `preset` が今の一覧にない（`unknown_preset`）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/SeedNotFound"
+        "426":
+          $ref: "#/components/responses/VersionMismatch"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/NotReady"
+  /v1/presets:
+    get:
+      operationId: getPresets
+      summary: プリセットの一覧
+      description: |
+        OctantCompass が今受け付けるプリセット（推薦の条件の組み合わせに名前を付けたもの）の一覧。
+        OctantPath は一覧をそのままボタンにし、押されたら `preset` の id と、`inputs` でそろえた入力を推薦の要求に入れて送る。
+        プリセットの中の条件（重み、狙い、ジャンルの語、params の一部）は OctantVector が持ち（契約1（OctantCompass・OctantHarvest → OctantVector）の `presets` と `expand_preset`）、OctantCompass は中継するだけで、ここには出さない。
+        DB にないビューやジャンルの語を使うプリセットは一覧に入れない（契約1 の「手札が使えるとき」）。
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      responses:
+        "200":
+          description: プリセットの一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresetsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "426":
+          $ref: "#/components/responses/VersionMismatch"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/NotReady"
+  /v1/signals:
+    put:
+      operationId: replaceSignals
+      summary: この環境の signal の正本を丸ごと送って置き換える
+      description: |
+        OctantCompass は signal をファイルに書かず、動いている間だけ環境ごとにメモリに持つ（2026-10-22 決定）。
+        OctantPath は、`/v1/health` の `instanceId` が前に送った相手と違うとき（OctantCompass を起動し直した、別の OctantCompass につないだ、
+        OctantPath 自身を起動し直した）か、`signals` の件数が自分の送った件数と合わないときに、正本を丸ごとここに送る。
+        OctantCompass はその環境の履歴をこの `events` で置き換える。送ったものが正本のすべてなので、通し番号は要らない。
+        同じトークンで別の正本（複製したゲームのフォルダ）がつなぐと、後につないだ正本の履歴になる。
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignalsRequest"
+      responses:
+        "200":
+          description: 置き換えたあとの件数と、履歴に入れなかった event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalsResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "426":
+          $ref: "#/components/responses/VersionMismatch"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: sendSignals
+      summary: MOD が観測したシグナルと、取り込んだ導入前の記録の、丸ごと送ったあとの追加
+      description: |
+        `events` は観測したときに足していく形で送る。MOD は観測できたものだけを送ってよい。
+        MOD による自動削除は送らない。練習モードとマルチプレイのプレイは今は送らない。
+        OctantCompass は送られた順に履歴の後ろへ足す。履歴に入れなかった event とその理由は応答の `rejected`。
+        OctantPath は送った signal も正本として残し、送れなかったとき（応答がない、応答の `count` が自分の数と合わない）は、次に PUT で丸ごと送り直す。
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignalsRequest"
+      responses:
+        "200":
+          description: 足したあとの件数と、履歴に入れなかった event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalsResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "426":
+          $ref: "#/components/responses/VersionMismatch"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/profile:
+    post:
+      operationId: getProfile
+      summary: 推定した実力と好みの表示
+      parameters:
+        - $ref: "#/components/parameters/OctantPathApiVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileRequest"
+      responses:
+        "200":
+          description: 契約1（OctantCompass・OctantHarvest → OctantVector）の `describe` の要約
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          $ref: "#/components/responses/SeedNotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "426":
+          $ref: "#/components/responses/VersionMismatch"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/NotReady"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        ペアリング（契約6（つなぐ側 ↔ OctantCompass））で OctantCompass が環境ごとに発行するトークン。OctantCompass で取り消すまで変わらない。
+        OctantCompass はトークンで環境を見分ける（同じ PC の複数の環境を見分けるため、127.0.0.1 でも要る）。
+  parameters:
+    OctantPathApiVersion:
+      name: OctantPath-Api-Version
+      in: header
+      required: true
+      description: |
+        MOD がすべての要求に付ける、MOD が話す契約3（OctantPath ↔ OctantCompass）の版。OctantCompass は `/v1/health` 以外の要求で、
+        メジャー版が自分の `apiVersion` と違えば 426（`version_mismatch`）を返す。マイナー版だけの違いはそのまま答える。
+        ヘッダがない要求も版が分からないので 426 にし、本文の `requestApiVersion` を null にする。
+      schema:
+        $ref: "#/components/schemas/ApiVersion"
+  responses:
+    InvalidRequest:
+      description: "`invalid_request`。要求の形が違う。または契約1（OctantCompass・OctantHarvest → OctantVector）の `RequestError`（ジャンルの語や狙いの名前が DB に合わない）。"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: "`unauthorized`。トークンがない、または取り消されている。合言葉が違うペアリングも同じ。"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    SeedNotFound:
+      description: |
+        `seed_not_found`: 契約1（OctantCompass・OctantHarvest → OctantVector）の `SeedNotInDBError`（起点の譜面が DB にない）。
+        `seed_not_embedded`: 契約1 の `SeedNotEmbeddedError`（起点の譜面は DB の目録にあるが、比べるベクトルがない）。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    VersionMismatch:
+      description: "`version_mismatch`。契約3（OctantPath ↔ OctantCompass）のメジャー版が違う。本文に OctantCompass の版と要求の版を入れる。"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotReady:
+      description: "`not_ready`。`status` が `ready` でない（DB の読み込み中、契約1（OctantCompass・OctantHarvest → OctantVector）の `DBError` で使えない）。"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: "`internal_error`。それ以外の想定外のエラー。"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    LocalizedText:
+      description: |
+        表示名。文字列 1 つか、言語（`en`、`ja` など）ごとの文字列（2026-10-11 の多言語化）。
+        MOD は自分の言語、`en`、最初の値の順に選ぶ。文字列ならそのまま出す。
+      oneOf:
+        - type: string
+        - type: object
+          minProperties: 1
+          additionalProperties:
+            type: string
+      examples:
+        - 似た曲
+        - { en: Similar songs, ja: 似た曲 }
+    ApiVersion:
+      type: string
+      pattern: "^[0-9]+\\.[0-9]+$"
+      description: 契約3（OctantPath ↔ OctantCompass）の版（メジャー.マイナー）。
+    SignalEvent:
+      $ref: "schemas/common/event.schema.json"
+    Params:
+      description: |
+        推薦の数値。OctantPath の設定にある値をそのまま送り、省いたものは既定値を使う。
+        OctantCompass は足したり書き換えたりせず、契約1（OctantCompass・OctantHarvest → OctantVector）の `recommend` と `describe` の `params` に渡す。知らないキーは無視する。
+        キーと型は契約1（OctantCompass・OctantHarvest → OctantVector）の params（schemas/engine-runtime/params.schema.json）と、OctantCompass だけが使う 2 つ（`sessionGapMinutes` と `warmupPlays`。OctantVector には渡しても使われない）。
+      allOf:
+        - $ref: "schemas/engine-runtime/params.schema.json"
+        - type: object
+          properties:
+            sessionGapMinutes:
+              type: number
+              exclusiveMinimum: 0
+              description: セッションの区切り（分）。前のプレイからこれ以上空いたら新しいセッション。OctantCompass が session context を作るのに使う。省けば plans/difficulty-fit.md の既定値（30）。
+            warmupPlays:
+              type: integer
+              minimum: 0
+              description: セッションの最初に慣らしにするプレイの数。OctantCompass が使う。省けば plans/difficulty-fit.md の既定値（3）。
+    HealthResponse:
+      type: object
+      required: [apiVersion, hostVersion, status, db]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+          description: OctantCompass が話す契約3（OctantPath ↔ OctantCompass）の版。
+        hostVersion:
+          type: string
+          description: OctantCompass の版。
+        status:
+          type: string
+          enum: [loading, ready, degraded]
+          description: DB の状態。`loading` の間（DB 読み込み中）、MOD は「準備中」と表示し、推薦要求は送らない。常駐中の OctantCompass が DB を手放していて、トークン付きの要求を受けて読み込みを始めたときも `loading`（契約6（つなぐ側 ↔ OctantCompass）の起動と常駐）。
+        db:
+          description: 読み込んだ DB の情報。DB を読み込んでいないときは null。
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/HealthDb"
+        reason:
+          type: string
+          description: |
+            `degraded` のときだけ。理由（契約の版の食い違いを含む）。
+            例: `db_missing`、`db_invalid`、`schema_unsupported`（契約2（DB 生成 ↔ 推薦コア）の食い違い）、`engine_incompatible`（契約1（OctantCompass・OctantHarvest → OctantVector）の食い違い）、`engine_unavailable`（OctantVector を読み込めない）、`db_load_failed`（それ以外の理由で DB を読み込めなかった。メモリ不足など）。
+            MOD は知らない値でも `degraded` として扱う。
+          examples: [db_missing, db_invalid, schema_unsupported, engine_incompatible, engine_unavailable, db_load_failed]
+        update:
+          type: object
+          description: DB を更新できないときだけ。`status` は手元の DB の状態のまま。
+          required: [reason]
+          properties:
+            reason:
+              type: string
+              description: DB を更新できない理由。`index_unsupported`（索引の `indexVersion` が読めない。契約5（OctantHarvest → 配布先 → OctantCompass）の食い違い）、`db_update_failed`（取得、検証、展開のどれかに失敗した）など。
+              examples: [index_unsupported, db_update_failed]
+        paired:
+          const: true
+          description: 有効なトークンが付いているときだけ。その環境とペアリング済み。
+        instanceId:
+          type: string
+          description: 有効なトークンが付いているときだけ。この OctantCompass の起動を表す値（起動のたびに変わる）。前に送った相手と違えば、OctantPath は正本を丸ごと送り直す。
+        signals:
+          type: integer
+          minimum: 0
+          description: 有効なトークンが付いているときだけ。OctantCompass がこの起動で持っている、その環境の signal の件数（履歴に入れなかったものも数える）。
+        presetsRevision:
+          type: string
+          description: 有効なトークンが付いていて、`status` が `ready` のときだけ。`/v1/presets` の `revision` と同じ値。MOD は値が変わったときだけ一覧を取り直す。
+      dependentRequired:
+        paired: [instanceId, signals]
+        instanceId: [paired]
+        signals: [paired]
+      if:
+        properties:
+          status:
+            const: degraded
+        required: [status]
+      then:
+        required: [reason]
+      else:
+        not:
+          required: [reason]
+    HealthDb:
+      type: object
+      required: [dbVersion, schemaVersion, views, roles, genres]
+      properties:
+        dbVersion:
+          type: string
+          description: 読み込んだ DB の `dbVersion`。
+        schemaVersion:
+          type: string
+          description: 読み込んだ DB の `schemaVersion`（契約2（DB 生成 ↔ 推薦コア）の版）。
+        views:
+          type: array
+          items:
+            type: string
+          description: 読み込み済みのビュー（`id@version`）。
+        roles:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: 役割名（契約2（DB 生成 ↔ 推薦コア）の役割名）をキーにし、その役割のビューの `id@version` の配列を値にした辞書。DB にない役割は入らない。重みのキーには使えず（OctantVector 0.4.0）、OctantPath は推薦の理由のビューを役割の名前で出すのに使う。
+        genres:
+          type: array
+          items:
+            type: string
+          description: 使えるジャンルの語の一覧（推薦の要求の `genre` に渡せる語）。
+    PairRequest:
+      type: object
+      required: [secret, name]
+      properties:
+        secret:
+          type: string
+          description: ペアリングの合言葉。OctantCompass が表示した短い合言葉を利用者が入れたもの（同じ PC でも同じ。契約6（つなぐ側 ↔ OctantCompass））。
+        name:
+          type: string
+          description: 環境の表示名。
+    PairResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: "その環境のトークン。以後 `Authorization: Bearer <token>` で送る。OctantCompass で取り消すまで変わらない。"
+    RecommendationRequest:
+      type: object
+      description: |
+        契約1（OctantCompass・OctantHarvest → OctantVector）の `recommend` の `request` に、`auto` の難易度、`params`、プリセット（`preset` と `choices`）を足したもの。項目の意味は契約1 のスキーマにある。
+        `preset` があれば、OctantCompass はプリセットの中の条件を使う。`weights`、`difficulty`、`genre` を一緒に送ったら、送ったほうを使う。
+      properties:
+        preset:
+          type: string
+          description: 任意。`/v1/presets` の一覧の `id`。一覧にない id なら 400（`unknown_preset`）。
+        choices:
+          type: object
+          additionalProperties:
+            type: string
+          description: 任意。プリセットの `choice` の入力で選んだ値。入力の `name` をキーにし、選んだ選択肢の `value` を値にする。プリセットが求める入力が欠けていたら 400（`invalid_request`）。
+        seed:
+          $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/seed"
+        genre:
+          $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/genre"
+        weights:
+          $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/weights"
+        difficulty:
+          description: 任意。契約1（OctantCompass・OctantHarvest → OctantVector）の `difficulty` に加えて `auto` を取れる。省けば契約1 と同じく `normal`。`auto` のときは OctantCompass が session context から狙いを選び、契約1 の値に変えて渡す。
+          oneOf:
+            - $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/difficulty"
+            - const: auto
+        count:
+          $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/count"
+          description: 件数。MOD は必ず送る。OctantCompass は省かれてもそのまま契約1 に渡す（OctantVector は 10 として扱うが、MOD は頼らない）。
+        chartsPerMap:
+          $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/chartsPerMap"
+        exclude:
+          $ref: "schemas/engine-runtime/recommend.request.schema.json#/properties/exclude"
+        params:
+          $ref: "#/components/schemas/Params"
+    RecommendationResponse:
+      type: object
+      description: 契約1（OctantCompass・OctantHarvest → OctantVector）の `recommend` の戻り値に `requestId` を足し、`items` を `candidates` と呼んだもの。`unknownEvents` は返さなくてよい。項目の意味は契約1 のスキーマにある。
+      required: [requestId, dbVersion, candidates, aims, replaced, ignoredWeights]
+      properties:
+        requestId:
+          type: string
+          description: OctantCompass が作る一意な文字列。MOD は DL管理DB の「推薦元」と、`recommendation` の signal に記録する。
+        dbVersion:
+          $ref: "schemas/engine-runtime/recommend.output.schema.json#/properties/dbVersion"
+        candidates:
+          $ref: "schemas/engine-runtime/recommend.output.schema.json#/properties/items"
+        aims:
+          $ref: "schemas/engine-runtime/recommend.output.schema.json#/properties/aims"
+        replaced:
+          $ref: "schemas/engine-runtime/recommend.output.schema.json#/properties/replaced"
+        ignoredWeights:
+          $ref: "schemas/engine-runtime/recommend.output.schema.json#/properties/ignoredWeights"
+    PresetsResponse:
+      type: object
+      required: [revision, presets]
+      properties:
+        revision:
+          type: string
+          description: 一覧の版。一覧の中身が変われば変わる。`/v1/health` の `presetsRevision` と同じ値。
+        presets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Preset"
+          description: プリセット。並びは OctantCompass の勧める表示の順。MOD はユーザーが決めた順と、出さないものだけを反映する。
+    Preset:
+      type: object
+      required: [id, label, inputs]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_-]+$"
+          description: プリセットの名前。版をまたいで同じ意味のまま変えない。MOD はユーザーの設定（出さないもの、並び順、お試し枠が使うプリセット）をこの id で持つ。
+        label:
+          $ref: "#/components/schemas/LocalizedText"
+          description: ボタンの表示名。短く。
+        hint:
+          $ref: "#/components/schemas/LocalizedText"
+          description: 任意。ボタンの説明（ホバーに出す文）。
+        group:
+          $ref: "#/components/schemas/LocalizedText"
+          description: "任意。ボタンをまとめる見出し（例: 曲、譜面、あなたへ）。同じ見出しの手札は一覧で続けて並ぶ。MOD は見出しで分けて見せてよい。"
+        inputs:
+          type: array
+          items:
+            $ref: "#/components/schemas/PresetInput"
+          description: "押す前に MOD がそろえる入力。空なら入力なしで押せる。MOD は、知らない `kind` の入力（`optional: true` のものを除く）があるプリセットを出さない。"
+    PresetInput:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          description: |
+            入力の種類。`seed` は曲選択で選んでいる譜面で、要求の `seed` に入れる。`choice` は `options` から 1 つ選ばせ、要求の `choices` に `name` をキーにして入れる。
+            種類を足すのはマイナー版。
+          examples: [seed, choice]
+        optional:
+          type: boolean
+          default: false
+          description: true なら、その入力がなくても押せる。MOD は知らない `kind` でも optional なら無視してプリセットを出す。
+        name:
+          type: string
+          description: "`choice` のとき。要求の `choices` のキー。"
+        label:
+          $ref: "#/components/schemas/LocalizedText"
+          description: "`choice` のとき。選ばせるときの見出し。"
+        options:
+          type: array
+          items:
+            type: object
+            required: [value, label]
+            properties:
+              value:
+                type: string
+                description: 要求の `choices` に入れる値。
+              label:
+                $ref: "#/components/schemas/LocalizedText"
+                description: 表示名。
+          description: "`choice` のとき。選択肢。"
+      if:
+        properties:
+          kind:
+            const: choice
+        required: [kind]
+      then:
+        required: [name, options]
+    SignalsRequest:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SignalEvent"
+          description: 送る event。観測したときに足していく。
+    SignalsResponse:
+      type: object
+      required: [count, rejected]
+      properties:
+        count:
+          type: integer
+          minimum: 0
+          description: 受け取ったあとの、その環境の signal の件数（履歴に入れなかったものも数える）。OctantPath は自分が送った件数と比べ、合わなければ次に丸ごと送り直す。
+        rejected:
+          type: array
+          items:
+            type: object
+            required: [index, reason]
+            properties:
+              index:
+                type: integer
+                minimum: 0
+                description: 履歴に入れなかった event の位置（要求の `events` の 0 始まり）。
+              reason:
+                type: string
+                description: |
+                  履歴に入れなかった理由。どちらも件数には数え、ほかの event の受け取りは止めない（2026-10-22 決定）。
+                  `unsupported_type`: OctantCompass の版にない `type`（契約3（OctantPath ↔ OctantCompass）の版の食い違い）。OctantCompass を上げると、OctantPath が丸ごと送り直すので履歴に入る。
+                  `invalid_event`: `type` は正しいが、その `type` の形に合わない（スコアの形が違う play など）。推薦には使わない。
+                examples: [unsupported_type, invalid_event]
+          description: 履歴に入れなかった event の位置と理由。
+    ProfileRequest:
+      type: object
+      properties:
+        params:
+          $ref: "#/components/schemas/Params"
+          description: 任意。推薦の設定。
+    ProfileResponse:
+      type: object
+      description: 契約1（OctantCompass・OctantHarvest → OctantVector）の `describe` の戻り値。項目の意味は契約1 のスキーマにある。`replaced` は返すことがあり、`unknownEvents` は MOD が無視してよい。契約1 の文書の「よく似ている軸」は今は返さない（2026-10-12）。
+      required: [dbVersion, likedMaps, plays, playStyles]
+      properties:
+        dbVersion:
+          $ref: "schemas/engine-runtime/describe.output.schema.json#/properties/dbVersion"
+        likedMaps:
+          $ref: "schemas/engine-runtime/describe.output.schema.json#/properties/likedMaps"
+        plays:
+          $ref: "schemas/engine-runtime/describe.output.schema.json#/properties/plays"
+        playStyles:
+          $ref: "schemas/engine-runtime/describe.output.schema.json#/properties/playStyles"
+        replaced:
+          $ref: "schemas/engine-runtime/describe.output.schema.json#/properties/replaced"
+        unknownEvents:
+          $ref: "schemas/engine-runtime/describe.output.schema.json#/properties/unknownEvents"
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [unauthorized, invalid_request, unknown_preset, seed_not_found, seed_not_embedded, version_mismatch, not_ready, internal_error]
+              description: エラーの種類。MOD は code で振る舞いを分ける。
+            message:
+              type: string
+              description: 説明の文。
+            apiVersion:
+              $ref: "#/components/schemas/ApiVersion"
+              description: "`version_mismatch` のときだけ。OctantCompass の版。"
+            requestApiVersion:
+              description: "`version_mismatch` のときだけ。要求の版（ヘッダ `OctantPath-Api-Version` の値）。ヘッダがなければ null。"
+              oneOf:
+                - type: "null"
+                - type: string
+          if:
+            properties:
+              code:
+                const: version_mismatch
+            required: [code]
+          then:
+            required: [apiVersion, requestApiVersion]

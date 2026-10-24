@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/engine-runtime/recommend.output.schema.json",
+  "title": "契約1（OctantCompass・OctantHarvest → OctantVector） recommend の戻り値",
+  "description": "順位の付いた譜面の一覧と、一覧全体の情報。振る舞いは contracts/engine-runtime.md にある。score は返さない。呼ぶ側は知らない項目を無視する。",
+  "type": "object",
+  "required": [
+    "dbVersion",
+    "aims",
+    "replaced",
+    "ignoredWeights",
+    "unknownEvents",
+    "items"
+  ],
+  "properties": {
+    "dbVersion": {
+      "description": "使った dbVersion",
+      "type": "string"
+    },
+    "aims": {
+      "description": "プレイスタイルごとに使った狙い。記録が足りず難易度で絞らなかったプレイスタイルは入らない。値は狙いの名前（normal、challenge、warmup）か、クリアできる見込みの目標を使ったときの clearChance",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "replaced": {
+      "description": "履歴や seed の旧版を現行版に置き換えた組の一覧（旧版→現行版）。返す譜面はいつも現行版なので、置き換えは項目ごとには持たない",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/replacement"
+      }
+    },
+    "ignoredWeights": {
+      "description": "request の weights のうち、DB にないビューや役割だったか、履歴（起点があれば起点）から基準が作れなかったので無視した名前の一覧。なければ空の配列",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknownEvents": {
+      "description": "history のうち、DB にないマップを指していて使えなかった event の数。表示や記録のためのもの",
+      "type": "integer",
+      "minimum": 0
+    },
+    "items": {
+      "description": "候補の一覧。rank の順に並ぶ。件数に足りないときは足りないまま返す（遊べない譜面で埋めない）",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    }
+  },
+  "$defs": {
+    "replacement": {
+      "description": "置き換えた組（旧版→現行版）",
+      "type": "object",
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "description": "旧版。マップは hash、譜面は hash:characteristic:difficulty（seed や履歴が譜面を指すとき）",
+          "type": "string"
+        },
+        "to": {
+          "description": "現行版。from と同じ形",
+          "type": "string"
+        }
+      }
+    },
+    "item": {
+      "description": "候補の 1 つの譜面と、その順位と理由。`score` と `mapKey` は入らない",
+      "type": "object",
+      "$ref": "../common/chart.schema.json",
+      "required": [
+        "hash",
+        "characteristic",
+        "difficulty",
+        "rank",
+        "reason"
+      ],
+      "properties": {
+        "rank": {
+          "description": "1 から始まる順位",
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "$ref": "#/$defs/reason"
+        }
+      },
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "score"
+            ]
+          },
+          {
+            "required": [
+              "mapKey"
+            ]
+          }
+        ]
+      }
+    },
+    "reason": {
+      "description": "理由。表示のためのもので、OctantCompass と OctantPath は並べ替えや絞り込みに使わない",
+      "type": "object",
+      "required": [
+        "views",
+        "difficulty"
+      ],
+      "properties": {
+        "views": {
+          "description": "似ている軸（id@version）ごとの寄与。表示にだけ使う",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "difficulty": {
+          "description": "難しさ（その人がクリアできる見込みと、狙いの中での位置）と一番近い得意な譜面。そのプレイスタイルの記録が足りないときは全体が null",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "aim",
+                "distance",
+                "target",
+                "clearChance",
+                "nearestStrong"
+              ],
+              "properties": {
+                "aim": {
+                  "description": "狙い。aims と同じ値（狙いの名前か clearChance）",
+                  "type": "string"
+                },
+                "distance": {
+                  "description": "譜面の特性の空間での、その人の得意な譜面からの距離",
+                  "type": "number"
+                },
+                "target": {
+                  "description": "狙う距離",
+                  "type": "number"
+                },
+                "clearChance": {
+                  "description": "クリアできる見込み（0〜1）。学べていなければ null",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "nearestStrong": {
+                  "description": "一番近い得意な譜面",
+                  "$ref": "../common/chart.schema.json"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

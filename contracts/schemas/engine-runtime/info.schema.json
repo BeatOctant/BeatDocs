@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/engine-runtime/info.schema.json",
+  "title": "契約1（OctantCompass・OctantHarvest → OctantVector） open_db が返す DB の info()",
+  "description": "open_db が返す DB の info() で読める項目。振る舞いは contracts/engine-runtime.md にある。呼ぶ側は知らない項目を無視する。",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "dbVersion",
+    "builtAt",
+    "calibrationId",
+    "counts",
+    "views",
+    "skippedViews",
+    "genres"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "契約2（DB 生成 ↔ 推薦コア）のマニフェストの値（配布物の形の版）",
+      "type": "string"
+    },
+    "dbVersion": {
+      "description": "契約2（DB 生成 ↔ 推薦コア）のマニフェストの値（DB の版）",
+      "type": "string"
+    },
+    "builtAt": {
+      "description": "契約2（DB 生成 ↔ 推薦コア）のマニフェストの値（作った日時）。null になり得る（2026-10-12）",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "calibrationId": {
+      "description": "契約2（DB 生成 ↔ 推薦コア）のマニフェストの値（校正）",
+      "type": "string"
+    },
+    "counts": {
+      "description": "契約2（DB 生成 ↔ 推薦コア）のマニフェストの counts のまま（マップと譜面の数）",
+      "type": "object",
+      "properties": {
+        "maps": {
+          "description": "マップ（版）の数",
+          "type": "integer",
+          "minimum": 0
+        },
+        "charts": {
+          "description": "譜面の数",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "views": {
+      "description": "読み込んだビューごとの役割、行の種類、行の数、次元。ビューの id@version をキーにした辞書",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "role",
+          "rowKind",
+          "rows",
+          "dim"
+        ],
+        "properties": {
+          "role": {
+            "description": "役割（契約2（DB 生成 ↔ 推薦コア）の役割名）。null になり得る（2026-10-12）",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "description": "ビューの種類（契約2（DB 生成 ↔ 推薦コア）のビューの種類）。vector はベクトル、relation は関係（行が属するものと組の点）。省いたときは vector",
+            "enum": [
+              "vector",
+              "relation"
+            ]
+          },
+          "rowKind": {
+            "description": "行の種類（マップか譜面）",
+            "enum": [
+              "maps",
+              "charts"
+            ]
+          },
+          "rows": {
+            "description": "行の数",
+            "type": "integer",
+            "minimum": 0
+          },
+          "dim": {
+            "description": "次元。関係のビュー（kind が relation）では 0",
+            "type": "integer",
+            "minimum": 0
+          },
+          "credits": {
+            "description": "そのビューのクレジット（契約2（DB 生成 ↔ 推薦コア）のビューの credits のうち文字列だけ）。ないときは空の配列。文字として扱い、HTML として描かない（2026-10-18）",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "skippedViews": {
+      "description": "このコアが読めない種類なので読み飛ばしたビュー（id@version の配列）",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "genres": {
+      "description": "使えるジャンルの語の一覧（recommend の genre に渡せる語）",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notice": {
+      "description": "DB 全体の利用条件とクレジット（契約2（DB 生成 ↔ 推薦コア）のマニフェストの notice。Markdown）。ないときは null。文字として扱い、HTML として描かない（2026-10-18）",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

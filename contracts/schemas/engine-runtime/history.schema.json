@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/engine-runtime/history.schema.json",
+  "title": "契約1（OctantCompass・OctantHarvest → OctantVector） recommend と describe の history",
+  "description": "保存してある signal とプレイの記録のすべて。契約3（OctantPath ↔ OctantCompass）の events と同じ形で、OctantPath が取り込んで送った imported_play も含む。OctantCompass は選り分けずに受け取ったままの粒度で渡し、判定は OctantVector がする（OctantVector 法 4.1（octantvector/law.md））。",
+  "type": "array",
+  "items": { "$ref": "../common/event.schema.json" }
+}

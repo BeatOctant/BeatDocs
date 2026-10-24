@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/common/chart.schema.json",
+  "title": "譜面",
+  "description": "1 つの譜面の指し方。マップの識別は BeatSaver の版ごとの hash に統一し、難易度は hash + characteristic + difficulty で指す（契約3（OctantPath ↔ OctantCompass）の共通ルール「マップの識別」）。受け取った側は未知の項目を無視する。",
+  "type": "object",
+  "required": ["hash", "characteristic", "difficulty"],
+  "properties": {
+    "hash": {
+      "type": "string",
+      "description": "BeatSaver の版ごとの hash。mapKey は表示にだけ使い、ここには入れない。"
+    },
+    "characteristic": {
+      "type": "string",
+      "description": "譜面の characteristic（例: Standard、OneSaber）。"
+    },
+    "difficulty": {
+      "type": "string",
+      "description": "譜面の difficulty（例: Hard、Expert、ExpertPlus）。"
+    }
+  }
+}

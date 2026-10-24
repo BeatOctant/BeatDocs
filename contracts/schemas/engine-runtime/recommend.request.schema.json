@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/engine-runtime/recommend.request.schema.json",
+  "title": "契約1（OctantCompass・OctantHarvest → OctantVector） recommend の request",
+  "description": "recommend(db, history, request, params) の推薦の条件。振る舞いは contracts/engine-runtime.md にある。",
+  "type": "object",
+  "properties": {
+    "seed": {
+      "description": "任意。起点にする 1 つの譜面。旧版の hash なら同じマップの現行版の同じ characteristic と difficulty に置き換える。DB になければ SeedNotInDBError",
+      "$ref": "../common/chart.schema.json"
+    },
+    "genre": {
+      "description": "任意。open_db が返す語（info() の genres）の 1 つ。音声の特徴がその語に近いマップに絞り込み、その中を「好意的なマップのうち最近プレイしたもの」の音楽の特徴に近い順に並べる。DB にない語は RequestError。seed があるときは起点を基準のままにして、候補を語に近いマップに絞るだけ（OctantVector 0.3.15。それまでは seed があると無視していた）",
+      "type": "string"
+    },
+    "weights": {
+      "description": "任意。似ている軸ごとの重み。キーはビューの id（版を問わず DB にあるその id のビュー。版が 2 つあれば等分）か id@version。役割名（music など）は札で、キーには使えない（書けば DB にない名前として扱う。2026-10-14、OctantVector 0.4.0）。省けば OctantVector の既定値（DB にある役割 music・chart・meta のビューに同じ重み）。DB にないビューの重みは無視して、出力の ignoredWeights に名前を入れる（DB を替えても推薦を止めないため。2026-10-07 決定）。DB にあっても、履歴（起点があれば起点）にそのビューのベクトルがなく基準が作れない重みも同じに扱う（例: 起点なしで chart だけに重みを付け、好意的なマップで遊んだ譜面がない。2026-10-08 決定）。すべて無視したときは省いたのと同じ",
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "narrow": {
+      "description": "任意。先に絞り込む軸と重み（weights と同じ形）。起点（なければ履歴）にこの軸で近いマップを、除くマップを除いて params の narrowTopMaps 件だけ残し、その中を weights で並べる。DB や基準が使えない名前は weights と同じく無視して ignoredWeights に入れ、すべて無視したら絞らない",
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "difficulty": {
+      "description": "任意。狙いの名前か、クリアできる見込み（0〜1）の目標。省けば normal。名前ごとの見込みの既定値は OctantVector が持つ。知らない狙いの名前は RequestError",
+      "oneOf": [
+        {
+          "description": "狙いの名前",
+          "enum": [
+            "normal",
+            "challenge",
+            "warmup"
+          ]
+        },
+        {
+          "description": "クリアできる見込みの目標",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ],
+      "default": "normal"
+    },
+    "count": {
+      "description": "件数。件数に足りないときは足りないまま返す。呼ぶ側は必ず送る。OctantVector は省かれても 10 として扱うが、これは壊れた要求でも動くための寛容さで、呼ぶ側は頼らない（2026-10-12）",
+      "type": "integer"
+    },
+    "chartsPerMap": {
+      "description": "任意。1 マップから返す譜面の数。既定は 1",
+      "type": "integer",
+      "default": 1
+    },
+    "exclude": {
+      "description": "任意。出さないマップ（hash）か譜面と、任意の理由の文字列",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "hash"
+        ],
+        "properties": {
+          "hash": {
+            "description": "出さないマップの hash（譜面のときはその譜面のマップの hash）",
+            "type": "string"
+          },
+          "characteristic": {
+            "description": "譜面を出さないときの characteristic",
+            "type": "string"
+          },
+          "difficulty": {
+            "description": "譜面を出さないときの difficulty",
+            "type": "string"
+          },
+          "reason": {
+            "description": "任意の理由の文字列。OctantCompass は解釈しない。知らない理由は除外としてだけ扱う",
+            "type": "string"
+          }
+        },
+        "dependentRequired": {
+          "characteristic": [
+            "difficulty"
+          ],
+          "difficulty": [
+            "characteristic"
+          ]
+        }
+      }
+    }
+  }
+}

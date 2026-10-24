@@ -1,0 +1,27 @@
+name: check
+# Runs on pull requests and on pushes to main: the public copy under BeatOctant takes no pull requests, so a push
+# to main is where it is tested there. A newer push to the same ref cancels the older run. Documents are not skipped:
+# check.py checks the links between them.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install jsonschema==4.26.0 PyYAML==6.0.1 openapi-spec-validator==0.9.0
+      - run: python tools/check.py

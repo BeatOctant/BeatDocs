@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/engine-runtime/describe.output.schema.json",
+  "title": "契約1（OctantCompass・OctantHarvest → OctantVector） describe の戻り値",
+  "description": "表示用の要約（得意な特性、苦手な向き、よく似ている軸）。unknownEvents を除き、契約3（OctantPath ↔ OctantCompass）の /v1/profile の応答と同じ形。呼ぶ側は知らない項目を無視する。",
+  "type": "object",
+  "required": ["dbVersion", "likedMaps", "plays", "playStyles", "replaced", "unknownEvents"],
+  "properties": {
+    "dbVersion": {
+      "description": "使った dbVersion",
+      "type": "string"
+    },
+    "likedMaps": {
+      "description": "好意的とみなしたマップの数",
+      "type": "integer",
+      "minimum": 0
+    },
+    "plays": {
+      "description": "履歴のプレイの数",
+      "type": "integer",
+      "minimum": 0
+    },
+    "playStyles": {
+      "description": "プレイスタイルごとの実力の要約。プレイスタイルをキーにした辞書",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["strongCharts", "features", "typicalDistance", "clearCurve", "weakDirections"],
+        "properties": {
+          "strongCharts": { "description": "得意な譜面の数", "type": "integer", "minimum": 0 },
+          "features": {
+            "description": "得意な特性（特性の名前をキーにした、得意な譜面の値）",
+            "type": "object",
+            "additionalProperties": { "type": "number" }
+          },
+          "typicalDistance": { "description": "得意な譜面どうしの、ふつうの距離", "type": "number" },
+          "clearCurve": { "description": "クリアできる見込みの曲線を作れたか", "type": "boolean" },
+          "weakDirections": {
+            "description": "苦手な向き（例: NJS が遅い譜面）。重い順。最近の失敗が params の minFailsForCurve 未満のとき、またはどの向きも「落ち方 − 標準誤差」が全向きの平均の落ち方を超えないときは空（OctantVector 0.5.0）",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["feature", "direction", "weight"],
+              "properties": {
+                "feature": { "description": "特性の名前（params の features のキー）", "type": "string" },
+                "direction": { "description": "一番近い得意な譜面より上か下か", "type": "string", "enum": ["high", "low"] },
+                "weight": { "description": "寄せたあと、設定の重みの何倍で数えるか（1 より大きい）", "type": "number", "exclusiveMinimum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "replaced": {
+      "description": "履歴の旧版を現行版に置き換えた組の一覧。recommend の replaced と同じ",
+      "type": "array",
+      "items": { "$ref": "recommend.output.schema.json#/$defs/replacement" }
+    },
+    "unknownEvents": {
+      "description": "history のうち、DB にないマップを指していて使えなかった event の数。表示や記録のためのもの",
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

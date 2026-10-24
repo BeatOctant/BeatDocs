@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BeatOctant/OctantSpecs/contracts/schemas/common/event.schema.json",
+  "title": "signal の event",
+  "description": "MOD が観測したシグナル、または取り込んだ導入前の記録の 1 件。PUT・POST /v1/signals の events の要素で、契約1（OctantCompass・OctantHarvest → OctantVector）の history の要素も同じ形。プレイは譜面（hash + characteristic + difficulty）、お気に入り・投票・ユーザーによる削除は hash の単位。受け取った側は未知の項目を無視する。",
+  "type": "object",
+  "required": ["type", "hash", "at"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["upvote", "downvote", "like", "like_removed", "play", "user_delete", "recommendation", "imported_play"],
+      "description": "event の種類。like_removed はお気に入りを外したことで、MOD は最後に送ったお気に入りの状態と変わったときだけ送る。お気に入りの印がなくなったことだけを表し、否定の印ではない（否定は downvote。2026-10-07 決定）。recommendation は推薦のその後の出来事。imported_play は導入前のプレイ回数で、OctantPath を入れる前のゲームの記録（PlayerData のプレイ回数）を、OctantPath が初回の取り込みでだけ履歴に入れたもの（2026-10-05 決定）。MOD による自動削除は送らない。"
+    },
+    "hash": {
+      "type": "string",
+      "description": "BeatSaver の版ごとの hash。"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*(Z|z|\\+00:00)$",
+      "description": "日時。ISO 8601、UTC。imported_play では取り込んだ時刻。"
+    },
+    "source": {
+      "type": "string",
+      "description": "取り込んだ導入前の記録だけに付ける出所（PlayerData、votedSongs など）。MOD が観測したものには付けない。"
+    },
+    "characteristic": {
+      "type": "string",
+      "description": "譜面の characteristic。play、imported_play、recommendation で付ける。"
+    },
+    "difficulty": {
+      "type": "string",
+      "description": "譜面の difficulty。play、imported_play、recommendation で付ける。"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["clear", "fail", "quit", "restart"],
+      "description": "play の結果。restart は曲の途中でやり直したもの（2026-10-06 決定）。"
+    },
+    "modifiers": {
+      "type": "object",
+      "description": "play の修飾（速度やノーフェイルなど）。知らない修飾も落とさずに保存する。",
+      "properties": {
+        "speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "速度の倍率。"
+        },
+        "noFail": {
+          "type": "boolean",
+          "description": "ノーフェイル。"
+        }
+      }
+    },
+    "accuracy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "play のスコア（精度）。あれば 0〜1 の精度。なければ省く。"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "imported_play の導入前のプレイ回数。途中終了も含み、結果は分からない（2026-10-05 決定）。"
+    },
+    "requestId": {
+      "type": "string",
+      "description": "recommendation の、元になった推薦の requestId（POST /v1/recommendations の応答）。"
+    },
+    "preset": {
+      "type": "string",
+      "description": "任意。recommendation の、元になった推薦の要求で使ったプリセットの id（POST /v1/recommendations の preset）。OctantCompass のキャッシュを失っても、どのプリセットの推薦だったかが分かるように残す（2026-10-12）。"
+    },
+    "stage": {
+      "type": "string",
+      "description": "recommendation の段階（shown、downloaded、selected など）。",
+      "examples": ["shown", "downloaded", "selected"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "play" } }, "required": ["type"] },
+      "then": { "required": ["characteristic", "difficulty", "result", "modifiers"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "imported_play" } }, "required": ["type"] },
+      "then": { "required": ["source", "characteristic", "difficulty", "count"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "recommendation" } }, "required": ["type"] },
+      "then": { "required": ["requestId", "characteristic", "difficulty", "stage"] }
+    }
+  ]
+}

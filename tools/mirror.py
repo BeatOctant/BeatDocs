@@ -12,10 +12,12 @@
     どれも main にいて、手元の変更がなく、origin/main と同じであること
   - 決めた語の一覧（--words。既定は ~/.config/beatoctant/mirror-words.txt）。メールアドレス、手元の家のパス、
     手元の環境の名前（ホスト名など）を 1 行に 1 つ書く。一覧はどの repo にも入れない（入れると一覧ごと公開される）
-  - --push のときは gh（GitHub CLI）。写しのリポジトリの設定を確かめ、送る
+  - --push のときは gh（GitHub CLI）。写しのリポジトリの設定を確かめ、送る。写しは https の URL で取って送るので、
+    git が https で認証できること（ssh だけで使っている PC では、先に `gh auth setup-git`）
 
 写しの作り方（どれかが守れないときは、何も送らずに止まる）:
-  1. 元は git archive の中身だけ。作業中のフォルダのファイル（.gitignore したトークンや鍵、ゲームの DLL）は入らない
+  1. 元は git archive の中身だけ。作業中のフォルダのファイル（.gitignore したトークンや鍵、ゲームの DLL）は入らない。
+     実行の印（100755）は元のとおりに付ける（CI が scripts/*.sh をそのまま起動するため）
   2. 外すもの（EXCLUDE）を外す。写す最上位のパス（TOP）に無いものがあれば止める（新しく増えたフォルダを黙って写さない）
   3. OWNER（作業用の非公開のリポジトリの持ち主）の 7 つの repo の URL を、ORG の URL にする（ssh の形は https にする）。
      LICENSE の著作権者や MOD の作者の名前は URL ではないので変えない
@@ -281,6 +283,11 @@ def commit(copy: Copy, source: str, tag: str | None, files: dict[str, bytes], da
         target = copy.dir / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
+    # 実行の印は git archive の中身ではなく元の木から取る
+    for line in git(copy.src, "ls-tree", "-r", source).splitlines():
+        mode, _, _, path = line.split(None, 3)
+        if mode == "100755" and path in files:
+            (copy.dir / path).chmod(0o755)
     git(copy.dir, "add", "--all")
     if git(copy.dir, "rev-parse", "--verify", "--quiet", "HEAD", check=False) and \
             not git(copy.dir, "diff", "--cached", "--name-only"):
@@ -310,7 +317,11 @@ def check_settings(name: str) -> list[str]:
             problems.append(f"{ORG}/{name}: {key} が有効です（Settings > General > Features で切る）")
     if repo.get("private"):
         problems.append(f"{ORG}/{name}: private です")
-    if not api(f"repos/{ORG}/{name}/private-vulnerability-reporting").get("enabled"):
+    try:
+        reporting = api(f"repos/{ORG}/{name}/private-vulnerability-reporting").get("enabled")
+    except Stop:  # private の repo では GitHub が 404 を返す
+        reporting = False
+    if not reporting:
         problems.append(f"{ORG}/{name}: private vulnerability reporting が無効です（Settings > Security）")
     return problems
 

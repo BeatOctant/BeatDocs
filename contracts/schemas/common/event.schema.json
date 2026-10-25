@@ -64,6 +64,10 @@
       "minimum": 0,
       "description": "imported_play の導入前のプレイ回数。途中終了も含み、結果は分からない（2026-10-05 決定）。"
     },
+    "cleared": {
+      "type": "boolean",
+      "description": "任意。imported_play の、ゲームがその譜面のスコアを持っているか（PlayerData の validScore）。真なら導入前に一度はクリアした譜面で、修飾の有無と日付は分からない。自分のクリアがたまるまでの実力の手がかりに使う（OctantVector 法 4.1。2026-10-24）。省いたら分からないものとして扱う。"
+    },
     "requestId": {
       "type": "string",
       "description": "recommendation の、元になった推薦の requestId（POST /v1/recommendations の応答）。"

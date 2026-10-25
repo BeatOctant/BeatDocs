@@ -122,7 +122,7 @@ exp20 は NPS と NJS の帯で測りました。距離に置き換えたとき�
 
 初めて使うときなど、得意な譜面の集まりを作れるだけのクリアがないときは、次の順で決めます。
 
-1. ScoreSaber / BeatLeader のローカル記録、`PlayerData` のクリア記録から集まりを作る
+1. `PlayerData` のクリア記録（OctantPath が初回に取り込む `imported_play` の `cleared`）で集まりを埋める。自分の素のクリアを先に入れ、残りの枠だけを、プレイ回数の多いものから埋める。自分のクリアが増えると、取り込んだものは回数の少ないものから枠を出る（2026-10-24。ScoreSaber / BeatLeader のローカル記録はまだ読まない）
 2. それもなければ、MOD の初回画面で「普段楽に遊べる譜面」を数件選んでもらい、それを仮の集まりにする（Easy〜Expert+ の名前では聞かない。名前の付け方がマッパーごとに違うため）
 3. 選ばれなければ、どの譜面も距離を測れないので難易度では絞らず、クリアが設定の件数たまったら推定に切り替える
 
@@ -136,7 +136,7 @@ exp20 は NPS と NJS の帯で測りました。距離に置き換えたとき�
 
 数値は契約1（OctantCompass・OctantHarvest → OctantVector）の `params` で受け取り、OctantPath の設定 JSON（`Beat Saber/UserData/OctantPath/`）から変えられます。既定値の正本は、難易度の項目が OctantVector の [`common/params.py`](https://github.com/BeatOctant/OctantVector/blob/main/src/octantvector/common/params.py) の `DEFAULTS`、セッションの区切り（`sessionGapMinutes`）と慣らしのプレイ数（`warmupPlays`）が OctantCompass の [`service.py`](https://github.com/BeatOctant/OctantCompass/blob/main/src/octantcompass/service.py) です。項目の意味は [params のスキーマ](../contracts/schemas/engine-runtime/params.schema.json) と[契約3](../contracts/mod-api.md)にあります。挑戦の割合（案は難易度が合う枠の半分）はまだ設定にありません（[open.md の難易度合わせ](../open.md#難易度合わせ)）。
 
-k、パーセンタイル、慣らしの距離は仮の値で、下の「確かめ方」で決めます。実力に使う最近のクリアの数（`strongRecentClears`）は、exp20 の 1 人分の記録から決めたものです。使う人が増えたら、台帳の数字で見直します。
+k、パーセンタイル、慣らしの距離は仮の値で、下の「確かめ方」で決めます。実力に使う最近のクリアの数（`strongRecentClears`）は、exp20 の 1 人分の記録から決めたものです。`minClears`（50）は裏づけのない仮の値で、取り込んだクリアも数えるので、PC では多くの人が最初から効きます。使う人が増えたら、台帳の数字で見直します。
 
 ## 確かめ方
 

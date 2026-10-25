@@ -22,7 +22,7 @@ OctantSpecs の文書を書き足したり直したりするときの決まり�
 - このリポジトリはそのまま公開します。人や手元の環境を特定できること（名前、パス、連絡の原文など）と、作業の途中の記録（監査、レビュー、下書き、生のデータ）は書かず、リンクもしません。それらはメンテナーの手元に置き、ここには結論と理由だけを書きます。
 - 1 つの事柄は 1 か所にだけ書きます。ほかの文書で必要なときはリンクし、内容を書き写しません。場所によって違うことが書かれているのを防ぐためです。
 - 仕様に関わる文書はすべてこのリポジトリに置きます。両方に関わるもの（契約、全体の計画、両方に効く決定）は最上位と `contracts/`、`plans/` に、片方だけに関わるものはリポジトリ名のフォルダ（`octantvector/` など）に置きます。
-- 直下の `GettingStarted_ja.md` と `GettingStarted_en.md` は利用者に向けて書き直したもので、仕様の写しとはみなしません。利用者が仕様を読まなくても使えるように書き、仕様へのリンクに頼りません。仕様や画面が変わったら、合わせて直します。冒頭の「既知の問題」も、直ったものは消し、新しく分かったものは足します。日本語と英語は同じ PR で合わせて直します。
+- 直下の `GettingStarted_ja.md` と `GettingStarted_en.md` は利用者に向けて書き直したもので、仕様の写しとはみなしません。利用者が仕様を読まなくても使えるように書き、仕様へのリンクに頼りません。仕様や画面が変わったら、合わせて直します。「既知の問題」も、直ったものは消し、新しく分かったものは足します。日本語と英語は同じ PR で合わせて直します。
 - コードの変更で仕様が変わるときは、コードの PR と一緒にこのリポジトリへの PR も出します。公開（リリース）の前は、契約の形や計画は後から合わせてよい（[憲法の原則 10](constitution.md#10-段階と文書の固さ)）。
 - ファイルの場所と、コードが番号で指す節（`plans/presets.md` の節など）は動かしません。消した節は見出しを残します。
 - main への変更は PR にし、メンテナーが承認してからマージします。
@@ -88,5 +88,5 @@ Organization BeatOctant の写しは、メンテナーが `python3 tools/mirror.
 
 ## Known issues and feedback
 
-Known issues are at the top of GettingStarted ([English](https://github.com/BeatOctant/OctantSpecs/blob/main/GettingStarted_en.md) / [日本語](https://github.com/BeatOctant/OctantSpecs/blob/main/GettingStarted_ja.md)). Bug reports and ideas go to `#bug-reports` and `#feedback-ideas` on the [BeatOctant Discord server](https://discord.gg/gx6k3nKZBe).
+Known issues are in GettingStarted ([English](https://github.com/BeatOctant/OctantSpecs/blob/main/GettingStarted_en.md) / [日本語](https://github.com/BeatOctant/OctantSpecs/blob/main/GettingStarted_ja.md)). Bug reports and ideas go to `#bug-reports` and `#feedback-ideas` on the [BeatOctant Discord server](https://discord.gg/gx6k3nKZBe).
 ````

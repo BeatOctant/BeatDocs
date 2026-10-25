@@ -26,7 +26,10 @@
      （古い版の木には main で片付けた記述が残る。2026-10-23）。元の SHA（uv.lock の #<sha> など）は写しの SHA にする
   5. 関所: 決めた語と、セッションの URL・トークン・秘密鍵の形を、ファイルの中身（バイナリも）とパスと、
      写しのコミットの情報から探す。非公開の元を指す URL、写しに無いコミットや PR へのリンク、
-     写しに無いパスへの blob/main・tree/main のリンク、self-hosted の runner も止める
+     写しに無いパスへの blob/main・tree/main のリンク、self-hosted の runner も止める。
+     決めた語は短いと別の語の一部にも当たるので、決めた語だけに当たったときは止めずに、当たった行を出して確かめる。
+     前後が英字・数字に続くもの（別の語の一部）は含む語と件数だけ出して通す（-v で場所も出す）。_ や - でつながったものは語そのものとして出す。
+     空打ちでは出すだけ。--push では y と答えたときだけ進む（入力が端末でないときは止める）
   6. 写しのコミットの作者・コミッターは AUTHOR に固定し、本文は決まった文にする（手元の git の設定を使わない）
   7. 写しの main には、前の写しの上にコミットを 1 つ積む（force-push はしない。main の ruleset も force-push と削除を禁じる）。
      中身が前の写しと同じならコミットを積まない。前の写しで付けたタグは付け直さない（同じ元のコミットを指すときだけ通す）。タグは写しで付け直したものだけを送る
@@ -176,6 +179,19 @@ def lines_with(text: str, pattern: re.Pattern) -> list[str]:
     return [f"{n}: {line.strip()[:160]}" for n, line in enumerate(text.splitlines(), 1) if pattern.search(line)]
 
 
+def word_lines(text: str, word: bytes) -> list[tuple[str, str]]:
+    """決めた語に当たった行を (行, 含む語) で返す。前後が英字・数字に続くときは、その語の一部として当たったとし、
+    含む語（小文字）を返す。続かないとき（語そのもの。_ や - でつながった形も含む）は、含む語を空にする。"""
+    pattern = re.compile(rf"[A-Za-z0-9]*{re.escape(word.decode())}[A-Za-z0-9]*", re.I)
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        for m in pattern.finditer(line):
+            start = max(0, m.start() - 60)
+            part = "" if len(m.group(0)) == len(word.decode()) else m.group(0).lower()
+            out.append((f"{n}: {line[start:start + 160].strip()}", part))
+    return out
+
+
 class Copy:
     """1 つの repo の写し。元のコミットごとに、書き換えたあとの中身を持つ。"""
 
@@ -207,9 +223,10 @@ def pins(copies: dict[str, Copy]) -> set[tuple[str, str]]:
     return found
 
 
-def gate(copies: dict[str, Copy], words: list[bytes], known: dict[str, set[str]]) -> list[str]:
-    """関所。止める理由を返す（空なら通る）。known は repo ごとの元のコミットの SHA（写しに無いものを指していないかを見る）。"""
-    problems = []
+def gate(copies: dict[str, Copy], words: list[bytes], known: dict[str, set[str]]) -> tuple[list[str], list[tuple[str, str]]]:
+    """関所。止める理由と、決めた語に当たったところ（確かめる）を返す。known は repo ごとの元のコミットの SHA
+    （写しに無いものを指していないかを見る）。"""
+    problems, hits = [], []  # hits は (ところ, 含む語)。含む語が空なら語そのものに当たった
     lowered = [w.lower() for w in words]
     heads = {name: copy.trees[-1][2] for name, copy in copies.items() if copy.trees}
     for name, copy in copies.items():
@@ -218,8 +235,11 @@ def gate(copies: dict[str, Copy], words: list[bytes], known: dict[str, set[str]]
             for path, content in files.items():
                 low = content.lower()
                 for w in lowered:
-                    if w in path.lower().encode() or w in low or w.decode().encode("utf-16-le") in low:
-                        problems.append(f"{where} {path}: 決めた語があります（{w.decode()[:3]}…）")
+                    hits += [(f"{where} {path}（パス）", part) for _, part in word_lines(path, w)]
+                    if is_text(content):
+                        hits += [(f"{where} {path}:{line}", part) for line, part in word_lines(content.decode("utf-8"), w)]
+                    elif w in low or w.decode().encode("utf-16-le") in low:
+                        hits.append((f"{where} {path}（バイナリの中。{w.decode()[:3]}…）", ""))
                 for pattern in ALWAYS:
                     if pattern.search(content) or pattern.search(path.encode()):
                         problems.append(f"{where} {path}: {pattern.pattern.decode()} の形があります")
@@ -244,7 +264,38 @@ def gate(copies: dict[str, Copy], words: list[bytes], known: dict[str, set[str]]
                         target, linked = heads.get(m.group("repo"), {}), m.group("path").rstrip(".,")
                         if not any(p == linked or p.startswith(linked.rstrip("/") + "/") for p in target):
                             problems.append(f"{where} {path}: {m.group(0)}（写しの main にそのパスがありません）")
-    return problems
+    return problems, hits
+
+
+def confirm(hits: list[tuple[str, str]], push: bool, verbose: bool = False) -> bool:
+    """語そのものに当たったところを 1 つずつ出す。--push では、y と答えたときだけ True を返す。
+    別の語の一部として当たったところ（Prime など）は含む語と件数だけ出し（verbose なら場所も）、確かめない。"""
+    alone = list(dict.fromkeys(place for place, part in hits if not part))  # 同じ行に何度当たっても 1 回だけ出す
+    parts: dict[str, list[str]] = {}
+    for place, part in hits:
+        if part:
+            parts.setdefault(part, []).append(place)
+    if alone:
+        print(f"\n決めた語に当たりました（{len(alone)} 件）。漏れていないか確かめてください:", file=sys.stderr)
+        for place in alone:
+            print(f"  - {place}", file=sys.stderr)
+    if parts:
+        print("\n別の語の一部として当たりました（確かめずに通します。場所は -v で出します）:", file=sys.stderr)
+        for part, places in sorted(parts.items(), key=lambda item: -len(item[1])):
+            print(f"  - {part}({len(places)})", file=sys.stderr)
+            if verbose:
+                for place in places:
+                    print(f"      {place}", file=sys.stderr)
+    if not push or not alone:
+        return True
+    if not sys.stdin.isatty():
+        print("入力が端末でないので、確かめられません。止めます", file=sys.stderr)
+        return False
+    try:
+        answer = input("問題がなければ y を入力してください（ほかは止めます）: ")
+    except EOFError:
+        return False
+    return answer.strip().lower() == "y"
 
 
 def source_commits(src: Path) -> set[str]:
@@ -333,6 +384,7 @@ def main() -> int:
     parser.add_argument("--work", type=Path, help="写しを作る作業フォルダ（既定は一時フォルダ）")
     parser.add_argument("--words", type=Path, default=Path.home() / ".config/beatoctant/mirror-words.txt")
     parser.add_argument("--push", action="store_true", help="関所を通ったら写しの main とタグを送る")
+    parser.add_argument("-v", "--verbose", action="store_true", help="別の語の一部として決めた語に当たった場所も出す")
     args = parser.parse_args()
     work = args.work or Path(tempfile.mkdtemp(prefix="beatoctant-mirror-"))
     date = dt.date.today().isoformat()
@@ -388,13 +440,12 @@ def main() -> int:
                     for head_tag in copy.head_tags:
                         git(copy.dir, "tag", head_tag, sha)
         known = {name: source_commits(copies[name].src) for name in ORDER}
-        problems = gate(copies, words, known)
+        problems, hits = gate(copies, words, known)
         for name in ORDER:
             copy = copies[name]
             info = git(copy.dir, "log", "--format=%an <%ae>%n%cn <%ce>%n%B", f"{copy.base}..HEAD" if copy.base else "HEAD")
             for w in words:
-                if w.decode().lower() in info.lower():
-                    problems.append(f"{name}: 写しのコミットの情報に決めた語があります")
+                hits += [(f"{name} コミットの情報:{line}", part) for line, part in word_lines(info, w)]
             for pattern in ALWAYS:
                 if pattern.search(info.encode()):
                     problems.append(f"{name}: 写しのコミットの情報に {pattern.pattern.decode()} の形があります")
@@ -410,6 +461,11 @@ def main() -> int:
             print(f"\n関所で止めました（{len(problems)} 件）。何も送っていません:", file=sys.stderr)
             for problem in problems:
                 print(f"  - {problem}", file=sys.stderr)
+            if hits:
+                confirm(hits, push=False, verbose=args.verbose)
+            return 1
+        if hits and not confirm(hits, args.push, args.verbose):
+            print("止めました。何も送っていません", file=sys.stderr)
             return 1
         if not args.push:
             print("\n関所を通りました。空打ちなので何も送っていません（送るときは --push）")

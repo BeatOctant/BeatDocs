@@ -42,6 +42,7 @@ BeatOctant で決まったことの記録です。いつ、何を、なぜ決め
 | 2026-10-22 | 利用者向けの文書を OctantSpecs 直下の `GettingStarted_ja.md` と `GettingStarted_en.md` にし、冒頭に既知の問題（Windows で試せていない、推薦の質の確かめが足りない、など）を書く。README の冒頭から利用者向けにリンクする | 誰でも取れる Dev 版を広く出すので、英語が要り、入口を一番上に置きたい。弱いところを先に書いておけば、報告の手がかりにもなる | 2026-10-22 |
 | 2026-10-24 | 部品の名前を BeatX から OctantX に変える（BeatPath→OctantPath、BeatPathQuest→OctantPathAndroid、BeatCompass→OctantCompass、BeatVector→OctantVector、BeatVectorPlugins→OctantVectorPlugins、BeatHarvest→OctantHarvest、BeatDocs→OctantSpecs）。総称の BeatOctant は変えない。Quest 版は Android（arm64）向けの名前にし、Quest は「for Meta Quest」の説明にだけ使う。データの識別子も変える（カタログの `schema` は `octantharvest-beatsaver-catalogue-capture/v1`、プールの `seed` の既定値は `octantvector`）。集めたカタログは `manifest.json` と `capture-state.json` を書き換えて使い続け、`sample` で絞る試しのプールは選ばれる曲が入れ替わる。CI のシークレットの名前（`BEATCOMPASS_CI_READ_BEATVECTOR` など）は、作り直しが要るので今は変えない。この表と変更の記録の古い行も新しい名前で書く | 米国で BEATPATH が音楽ソフトの商標として登録されていて（2026-09-15）、同じ名前の DJ ソフトがある。Steam に同名のリズムゲーム Beat Vector がある。Meta の商標の決まりは、Quest を他人の製品名に入れることを認めていない。シークレットは値を読み出せず、名前を変えるにはトークンを作り直す | 2026-10-24（名前の重複と商標の調べ） |
 | 2026-10-24 | 公開（Dev 版）の Release に「Pre-release」の印を付けない。本文は [CONTRIBUTING の型](CONTRIBUTING.md#release-の本文)で書き、先頭で Dev 版と書く | 印を付けると Release が探しにくくなる | 2026-10-24 |
+| 2026-10-25 | GettingStarted の冒頭は、Dev 版・非公式・AI で書いたこと・Discord の短い注意だけにする。そのあとに必要なもの（システム要件と MOD を分けた表）、取るもの、入れ方を置き、使い方、通信、既知の問題、困ったとき、やめ方の順にする。通信は、外部のサービスへ送るもの（ない）、曲の取得に伴う通信、OctantPath と OctantCompass の間の通信に分ける | 冒頭の注意が多く、始める手順まで遠かった。導入のブログではなく技術文書として、要求事項を先に、外へ出るものの範囲をはっきり書く | 2026-10-25 |
 
 ## 外へ出るもの
 
@@ -167,6 +168,7 @@ BeatOctant で決まったことの記録です。いつ、何を、なぜ決め
 | 2026-10-10 | 非公開（探求中）の段階では、配布物の承認も署名もせず手元のフォルダで使う | | plans/octantvector-pipeline.mdの決めたことの節（契約5 の非公開（探求中）の扱い） |
 | 2026-10-11 | 差分を当てるとき、知らない列と `chartMetrics` を持ち越し、持ち越せないときは差分を断る（OctantVector 0.3.23。契約2 の互換性のルール） | 古い OctantVector が差分を当てると知らない列を黙って落とし、版は 1.1 のままと書いていた。`write_full` が `chartMetrics` を毎回 `{}` で書くので、差分を当てるたびに Pass・Tech などの出所が消えていた | plans/recommendation-loop.md 8 節 |
 | 2026-10-14 | エンコーダを足すパッケージの入口 `octantvector.plugin` は不安定版とする。変わるたびに `PLUGIN_API` の番号を上げ、別の番号で書かれたプラグインは読み込まない。契約1 の一部ではなく OctantVector の中の取り決めとし、固まったら契約の決まりに合わせて書き直す（いまは octantvector/encoders.md の「プラグイン」に残してある） | OctantVector 0.4.0 で作ったばかりで固まっていない | octantvector/plugins.md 冒頭（OctantSpecs #102、OctantVector 0.4.0。ファイルは退役） |
+| 2026-10-24 | PlayerData でクリアのある譜面（`imported_play` の `cleared`）で、自分の素のクリアで埋まらない実力の枠を埋め、`minClears` にも数える。プレイ回数の多いものから入れ、自分のクリアが増えたら回数の少ないものから外す | 今の決まりでは効き始めるまで約 140 プレイかかり、ふつうの人で 5〜25 日待つ。取り込むと 1 プレイ目から効き、早く外す形はこれより良くならなかった | 2026-10-24、exp-early-fit |
 
 ## OctantPath
 
@@ -242,3 +244,4 @@ BeatOctant で決まったことの記録です。いつ、何を、なぜ決め
 | 2026-10-22 | 試し運転（`deleteDryRun`）の既定を入のままにし、切って確かめてから既定を変えること（2026-10-08） | 開発用の PC で確かめた | 既定は切（お試しの曲を自動で消す）。読めない設定と範囲外の値では消さない | [OctantPath](#octantpath)の 2026-10-08・2026-10-22・2026-10-23 |
 | 2026-10-23 | OctantCompass の管理 API（管理画面）に鍵を持たないこと（2026-10-13、OctantCompass 法 1.10） | adb reverse で別の端末のアプリも 127.0.0.1 から届く | 起動ごとの鍵を `connection.json` に置く | [OctantCompass](#octantcompass)の 2026-10-23 |
 | 2026-10-23 | 写しに、他 repo を読むトークンを使う CI を入れないこと（2026-10-22） | トークンを使うのは元の repo だけにすれば、同じ CI が写しでも公開の repo を読んで動く | 写しにも CI を入れ、トークンは元の repo でだけ使う | [全体と段階](#全体と段階)の 2026-10-22・2026-10-23 |
+| 2026-10-25 | GettingStarted の冒頭に既知の問題を書くこと（2026-10-22） | 冒頭の注意が多く、始める手順まで遠かった | 冒頭は短い注意だけにし、既知の問題は使い方と通信のあと、困ったときの前に置く | [全体と段階](#全体と段階)の 2026-10-25 |

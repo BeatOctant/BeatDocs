@@ -32,7 +32,7 @@ BeatOctant の段階ごとに、何が済んでいて何が残っているかの
 使い始めてからの数字や困りごとで決める問いです。段階には結びつけていません。
 
 - 推薦の定義の D1〜D8、推薦のその後の L1・L2、手札の P1〜P3、近いアーティストの A2〜A4、難易度合わせの F1〜F3（[open.md](open.md)）
-- 契約の C2・C11・C14、OctantPath の U1・U4・U5・U6（[open.md](open.md#契約の未決点)、[open.md](open.md#octantpath)）
+- 契約の C2・C11・C14、OctantPath の U1・U4・U5・U6・U7（[open.md](open.md#契約の未決点)、[open.md](open.md#octantpath)）
 - OctantVector の実装と決まりの食い違い V4・V5・V7〜V11（[open.md](open.md#octantvector)）
 - ゲーム側の未確認の技術 G1〜G5（[open.md](open.md#spike-で確かめること)）
 

@@ -97,3 +97,15 @@ MOD がマップを取る先は設定で変えられるようにします。将�
 ## スコアの送信
 
 いまはどこにも送っていません。プレイの記録（精度を含む）は、手元で推薦を計算するために、ペアリングした OctantCompass に渡し、そこから OctantVector に渡すだけです（2026-10-17）。
+
+## 票の送信
+
+OctantPath は BeatSaver に票を送りません。認証（Steam の認証チケットなど）も持ちません（2026-10-29）。
+
+- OctantPath の好意ボタンは OctantPath の中だけの印で、BeatSaver の投票とは別のものです
+- 設定で入れたときだけ、好意ボタンを押すと、BeatSaverVoting の Upvote ボタンを OctantPath が代わりに押します。票を送るのも `votedSongs.json` を書くのも BeatSaverVoting で、OctantPath は送り手になりません
+  - 既定は切
+  - BeatSaverVoting を入れていない環境では、この設定を出しません。ボタンが見つからないときは押さずに終わります
+  - 好意ボタンは譜面ごとの印、Upvote はマップに 1 票なので、設定には「マップに Upvote」と書きます
+  - 設定を入れる前に付けた好意に、さかのぼって票を入れません
+- BeatSaverVoting は Steam の認証チケットと Steam ID を BeatSaver に送って投票します（GitHub の旧版 1.3.2 のソースで 2026-10-29 確認。2.4.6 も同じかは推測）。他の MOD 向けの公開 API はないので、押し方は結果画面のボタンを reflection で押す形です（推測。[open.md](../open.md#u7-好意ボタンの置き場所と印の形) で確かめる）

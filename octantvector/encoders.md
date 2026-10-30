@@ -2,9 +2,9 @@
 
 > 固さ: 後から記録する層（[憲法の原則 10](../constitution.md#10-段階と文書の固さ)）。エンコーダの説明で、版や次元数の正本はコードと `encoder.json` です。
 
-OctantVector 0.8.0 と OctantVectorPlugins の main にあるエンコーダです。版・次元数・パラメータ・使用モデルのリビジョンは、各エンコーダのコードと、保存先の `encoder.json` に記録されています。ここには役割と既知の問題だけを書きます。
+OctantVector と OctantVectorPlugins の main にあるエンコーダです。版・次元数・パラメータ・使用モデルのリビジョンは、各エンコーダのコードと、保存先の `encoder.json` に記録されています。ここには役割と既知の問題だけを書きます。
 
-OctantVector 本体に入っているのは、譜面とメタ情報のエンコーダです。音や画像のモデルを使うビュー（CLAP、MERT、WavLM、Whisper、SigLIP）は [OctantVectorPlugins](https://github.com/BeatOctant/OctantVectorPlugins) のプラグインにあり、使うものだけを OctantVector と同じ環境に入れます（OctantVector 0.4.0、2026-10-14。入れ方は OctantVectorPlugins の README、決まりは下の[プラグイン](#プラグイン)）。
+OctantVector 本体に入っているのは、譜面とメタ情報のエンコーダです。音や画像のモデルを使うビュー（CLAP、MERT、WavLM、Whisper、SigLIP）は [OctantVectorPlugins](https://github.com/BeatOctant/OctantVectorPlugins) のプラグインにあり、使うものだけを OctantVector と同じ環境に入れます（2026-10-14。入れ方は OctantVectorPlugins の README、決まりは下の[プラグイン](#プラグイン)）。
 
 | id | 役割 | 種類 | 内容 | コード |
 |---|---|---|---|---|
@@ -30,7 +30,7 @@ OctantVectorPlugins のビュー:
 
 カタログから作る関係のビュー: `beatsaver_mappers@1`（役割 mapper。譜面の作者の BeatSaver のアカウント ID。OctantVector 本体の `generation/mappers.py`。計算せず、`views` に名指しすると `release` が入れる）。
 
-0.4.0 で消したエンコーダ: `mert_v1_330m`、`ast_audioset_emb`、`ast_audioset_labels`（exp07 で足してもよくならなかった）、`audio_stats`（librosa の手作りの特徴）。保存先に残っている計算結果は、そのビューを指定しなければ読みません。
+2026-10-14 に消したエンコーダ: `mert_v1_330m`、`ast_audioset_emb`、`ast_audioset_labels`（exp07 で足してもよくならなかった）、`audio_stats`（librosa の手作りの特徴）。保存先に残っている計算結果は、そのビューを指定しなければ読みません。
 
 種類（kind）と正規化方法（norm）の意味は `generation/encoders/base.py` に書いてあります。
 
@@ -40,13 +40,13 @@ OctantVectorPlugins のビュー:
 
 - **`laion/larger_clap_music` は使えません。** Hugging Face 版はどんな入力でもテキスト・音声のロジットが均一になります。transformers 5.x でも 4.x でも同じでした。そのため `laion/clap-htsat-unfused` を使っています。
 - **MERT は隠れ状態をフックで取ります。** transformers 5.x では、MERT のモデルのコードが `output_hidden_states` を無視します。そのため指定した層の出力を forward hook で取得しています。モデルのコード（`modeling_MERT.py`、`configuration_MERT.py`）は Hugging Face の `trust_remote_code` では読まず、固定した revision からの写しを `octantvector-mert` に含めています（そのためパッケージ全体が CC BY-NC 4.0。`mert/NOTICE`）。
-- **モデルは取りに行きません。** 各エンコーダが宣言したモデルを `models_dir` の下の `hf/<repo>/<revision>/` からだけ読みます。ないときはそのビューを使う操作がエラーになり、`octantharvest models` で置くよう出ます（契約1 生成側の `models(views)`。OctantVector 0.4.0）。
+- **モデルは取りに行きません。** 各エンコーダが宣言したモデルを `models_dir` の下の `hf/<repo>/<revision>/` からだけ読みます。ないときはそのビューを使う操作がエラーになり、`octantharvest models` で置くよう出ます（契約1 生成側の `models(views)`。2026-10-14）。
 - **プラグインの版が合わないと読み込みません。** `octantvector.plugin` の `PLUGIN_API` と違う番号で書かれたプラグインは登録されず、`octantvector check` とそのビューを頼んだときに理由が出ます（[プラグイン](#プラグイン)）。
 - **埋め込みワーカーは spawn で起動します。** CUDA やダウンロード用のスレッドを持ったプロセスから fork すると、ワーカーがデッドロックします。
 - **埋め込みのワーカーは、数値計算のスレッド 1 つずつで動かします。** 呼び出し側が `OMP_NUM_THREADS` などを決めていればそれを使います。ワーカーが落ちたら待ち続けず、受け持っていた可能性のあるマップを示して止めます。再実行すれば続きから計算します。
 - **ワーカーのメモリを見張ります。** 設定 `worker_memory_gb` を超えたワーカーだけを止め、その Map は失敗として記録して、ほかの Map の計算を続けます。比べるのはワーカー自身のメモリで、共有ライブラリの分は数えません（数えると健全なワーカーまで止まり、計算全体が止まった）。ワーカーは 200 Map ごとに入れ替えます。全件の計算でワーカー 1 つが 35GB になり PC が固まったために足しました。
 - **30 分より長い曲はデコードしません。** その Map の音声のビューだけを失敗として記録します。曲が読めなくても、同じ zip の譜面のビューは残します。9 時間の曲でデコーダが落ちたために足しました。
-- **一部の .dat は UTF-16 です。** 文字コードは `json.loads` に任せ、BOM か、BOM がなければ先頭のバイトで判別して読みます（UTF-8・UTF-16・UTF-32。OctantVector 0.8.1）。
+- **一部の .dat は UTF-16 です。** 文字コードは `json.loads` に任せ、BOM か、BOM がなければ先頭のバイトで判別して読みます（UTF-8・UTF-16・UTF-32。2026-10-23）。
 - **曲が音声でないマップがあります。** 音声ファイルの代わりに動画（Ogg Theora）が入っていたり、音声ファイルが無かったりするマップです。デコードに失敗したマップは台帳にエラーとして記録して飛ばし、次の `update` では計算し直しません。ノーツが少なすぎる譜面には `chart_patterns` のベクトルを作りません。
 
 ## エンコーダの追加
@@ -58,7 +58,7 @@ OctantVector 本体に足すときは `generation/encoders/` にクラスを追�
 - **入力（`inputs`）**: 値が何に依存するか（音源、譜面、カタログのどの項目、どのビュー、どの学習済みファイル）。宣言のないエンコーダは登録できません。毎日の差分でどの変化から計算し直すかは、この宣言で決めます
 - **モデル（`Model`）**: 読む学習済みモデル（Hugging Face のリポジトリ、40 桁の revision、ファイル名）。契約1 の `models(views)` がこれを集め、OctantHarvest が置きます（上の「モデルは取りに行きません」）
 
-エンコーダの段階（実験・候補・配布中・引退）は OctantVector 0.4.0 でやめました（2026-10-14）。どのビューを計算して DB に入れるかは、呼ぶ側（OctantHarvest の設定 `views`）が毎回名指しします。試すときは `trial` プール（[設定](config.md)）で一部だけ計算します。
+エンコーダの段階（実験・候補・配布中・引退）は 2026-10-14 にやめました。どのビューを計算して DB に入れるかは、呼ぶ側（OctantHarvest の設定 `views`）が毎回名指しします。試すときは `trial` プール（[設定](config.md)）で一部だけ計算します。
 
 保存先の `encoder.json` には定義と一緒に指紋（定義と元のビューの指紋をまとめたハッシュ）を記録します。版を上げずに定義か元のビューが変わると、保存先を開くときにエラーで止まります（[OctantVector 法](law.md) 2.2）。`octantvector check` で、エンコーダごとの計算済みの件数と、読み込めなかったプラグインを確認できます。
 
@@ -66,6 +66,6 @@ OctantVector 本体に足すときは `generation/encoders/` にクラスを追�
 
 プラグイン（エンコーダを足すパッケージ）の形と規約は、[OctantVectorPlugins の README](https://github.com/BeatOctant/OctantVectorPlugins/blob/main/README.md) と、OctantVector の [`src/octantvector/plugin.py`](https://github.com/BeatOctant/OctantVector/blob/main/src/octantvector/plugin.py) の冒頭（公開するもの）にあります。
 
-- **不安定版です。** `octantvector.plugin` が変わるたびに `PLUGIN_API` の番号を上げ、別の番号で書かれたプラグインは読み込みません。契約1（OctantCompass・OctantHarvest → OctantVector）の一部ではなく、OctantVector の中の取り決めです。固まったら、契約の決まりに合わせて書き直します（2026-10-14、OctantVector 0.4.0）
+- **不安定版です。** `octantvector.plugin` が変わるたびに `PLUGIN_API` の番号を上げ、別の番号で書かれたプラグインは読み込みません。契約1（OctantCompass・OctantHarvest → OctantVector）の一部ではなく、OctantVector の中の取り決めです。固まったら、契約の決まりに合わせて書き直します（2026-10-14）
 - エンコーダの id は、本体やほかのプラグインと重ねられません。役割（`role`）は[契約2（DB 生成 ↔ 推薦コア）の役割名](../contracts/vector-db.md#役割名)から選びます
 - 決まっていないこと: `PLUGIN_API` をいつ固めるか（固めると、変えるときに OctantVector のメジャー版を上げることになる）。プラグインのビューの名前と役割の予約（同じ id を 2 つのパッケージが名乗ったときの扱い。今は同じ id を 2 度登録しようとするとエラーになる）

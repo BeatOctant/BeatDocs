@@ -1,18 +1,18 @@
-# OctantPath 実装構想（Beat Saber 1.40.8）
+# OctantPath 実装構想
 
 > 固さ: 後から記録する層（[憲法の原則 10](../constitution.md#10-段階と文書の固さ)）。実装済みの仕組みの説明で、正本はコードです。
 
-2026-10-01 作成 · 状態: 実装済み（OctantPath MOD 0.0.3 と OctantPath Desktop。部品の名前と分け方はコードにある）
+2026-10-01 作成 · 状態: 実装済み（OctantPath の MOD と OctantPath Desktop。部品の名前と分け方はコードにある）
 
 ## 前提と目標
 
-OctantPath はゲーム内の MOD で、推薦はゲーム外の OctantCompass から契約3（OctantPath ↔ OctantCompass）で受け取ります。最初は Beat Saber 1.40.8（Steam、PC）だけに対応します。ゲーム本体への独自パッチは避け、MOD 界隈で定番の公開ライブラリと、ゲームが Zenject で公開している部品の範囲で組み立てます。
+OctantPath はゲーム内の MOD で、推薦はゲーム外の OctantCompass から契約3（OctantPath ↔ OctantCompass）で受け取ります。最初は Beat Saber の PC 版（Steam）の 1 つの版だけに対応します（今の版は OctantPath の README の「組み合わせる版」）。ゲーム本体への独自パッチは避け、MOD 界隈で定番の公開ライブラリと、ゲームが Zenject で公開している部品の範囲で組み立てます。
 
 - 目標: ゲーム内で推薦を受け取り、専用プレイリストへ自動ダウンロードし、残すか消すかを自動で決める
 - MOD、OctantCompass、OctantVector の間の取り決めは [契約](../contracts/README.md) にあり、この文書では繰り返しません。変えてほしい点は contracts/ の方を直します。実装が守る意味は [OctantPath 法](../octantpath/law.md)にあり、食い違えば法が優先です
 - MOD と OctantCompass は契約3 の API と契約6（つなぐ側 ↔ OctantCompass）の接続の手順だけでつながり、OctantPath の実装は OctantCompass の中身に依存しません（憲法の原則 8）。ゲームのフォルダ（曲ファイルとプレイリスト）に触れるのは MOD だけです
 
-## 使うライブラリ（1.40.8）
+## 使うライブラリ
 
 MOD は、PC 版の MOD の多くが前提にしている定番ライブラリだけに依存させます。版は MOD の `manifest.json` の `dependsOn` にあります。
 

@@ -10,14 +10,34 @@
       "$ref": "../common/chart.schema.json"
     },
     "genre": {
-      "description": "任意。open_db が返す語（info() の genres）の 1 つ。音声の特徴がその語に近いマップに絞り込み、その中を「好意的なマップのうち最近プレイしたもの」の音楽の特徴に近い順に並べる。DB にない語は RequestError。seed があるときは起点を基準のままにして、候補を語に近いマップに絞るだけ（OctantVector 0.3.15。それまでは seed があると無視していた）",
+      "description": "任意。open_db が返す語（info() の genres）の 1 つ。音声の特徴がその語に近いマップに絞り込み、その中を「好意的なマップのうち最近プレイしたもの」の音楽の特徴に近い順に並べる。DB にない語は RequestError。seed があるときは起点を基準のままにして、候補を語に近いマップに絞るだけ。絞った語は各候補の理由の genre に入る",
       "type": "string"
     },
+    "genreFrom": {
+      "description": "任意。ジャンルの語（info() の genres）の配列。seed も genre もないときだけ使う。好意的なマップでの値の平均が一番高い語を選び、その語に近いマップに絞り込み、その中を好意的なマップ全体に近い順に並べる（「あなたのジャンル」）。選んだ語は各候補の理由の genre に入る。好意的なマップがどの語の値も持たなければ絞らない。DB にない語があれば RequestError（2026-10-29）",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
     "weights": {
-      "description": "任意。似ている軸ごとの重み。キーはビューの id（版を問わず DB にあるその id のビュー。版が 2 つあれば等分）か id@version。役割名（music など）は札で、キーには使えない（書けば DB にない名前として扱う。2026-10-14、OctantVector 0.4.0）。省けば OctantVector の既定値（DB にある役割 music・chart・meta のビューに同じ重み）。DB にないビューの重みは無視して、出力の ignoredWeights に名前を入れる（DB を替えても推薦を止めないため。2026-10-07 決定）。DB にあっても、履歴（起点があれば起点）にそのビューのベクトルがなく基準が作れない重みも同じに扱う（例: 起点なしで chart だけに重みを付け、好意的なマップで遊んだ譜面がない。2026-10-08 決定）。すべて無視したときは省いたのと同じ",
+      "description": "任意。似ている軸ごとの重み。キーはビューの id（版を問わず DB にあるその id のビュー。版が 2 つあれば等分）か id@version。役割名（music など）は札で、キーには使えない（書けば DB にない名前として扱う。2026-10-14）。省けば OctantVector の既定値（DB にある役割 music・chart・meta のビューに同じ重み）。DB にないビューの重みは無視して、出力の ignoredWeights に名前を入れる（DB を替えても推薦を止めないため。2026-10-07 決定）。DB にあっても、履歴（起点があれば起点）にそのビューのベクトルがなく基準が作れない重みも同じに扱う（例: 起点なしで chart だけに重みを付け、好意的なマップで遊んだ譜面がない。2026-10-08 決定）。すべて無視したときは省いたのと同じ。all と一緒には送れない（RequestError）",
       "type": "object",
       "additionalProperties": {
         "type": "number"
+      }
+    },
+    "all": {
+      "description": "任意。weights の代わりに、2 つ以上の「ビューと重み」（それぞれ weights と同じ形）の配列。候補はどの組でも近くなければならない。組ごとの重み付き平均を、すべての組を持つ譜面の中でのパーセンタイルにし、一番低いパーセンタイルで並べる（「これでもあれでも近い」）。難しさの罰とつり合うよう、並びはすべての組のビューの重み付き平均の尺度に戻す。ある組の重みを minViewWeight 未満しか持たない譜面は外す。DB や基準が使えない組は weights と同じく無視して ignoredWeights に入れ、組が 1 つしか残らなければ weights と同じに並べる。weights と一緒には送れず、組が 2 つ未満なら RequestError（2026-10-30）",
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": {
+          "type": "number"
+        }
       }
     },
     "narrow": {
@@ -89,6 +109,28 @@
           "difficulty": [
             "characteristic"
           ]
+        }
+      }
+    },
+    "mix": {
+      "description": "任意。複数の手札から 1 つの一覧を作る（扱い方 mixed を expand_preset が展開したもの）。要素ごとに request で推薦し（count と chartsPerMap は外側のもの。要素の difficulty が省かれているか auto なら外側のもの）、count 件の枠を手札の重みで分ける（どの手札にも 1 つ以上。最大剰余）。手札の重みは、その手札の前の推薦への反応（契約3（OctantPath ↔ OctantCompass）の recommendation の event。ダウンロードか選んだら残した、外したか入れ替えたら飛ばした）から残した割合を推薦ごとに出して平均し、すべての手札の平均へ params の mixPriorDrafts 件分寄せたもの。推薦がなければ同じ重み。重い手札から 1 つずつ交互に並べ、前の手札が置いた譜面とマップは後の手札に回し、埋められない枠はほかの手札が埋める。反応は枠の数だけを変え、手札の中の順位と好意の判定は変えない。各候補の理由の hand にその手札の id が入る。mix があると、外側のほかの条件（seed などの絞り込み）は使わない（2026-10-29）",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "hand",
+          "request"
+        ],
+        "properties": {
+          "hand": {
+            "description": "手札の id。同じ id を 2 度書けば RequestError",
+            "type": "string"
+          },
+          "request": {
+            "description": "その手札の推薦の条件（この形。mix は無視する）",
+            "type": "object"
+          }
         }
       }
     }

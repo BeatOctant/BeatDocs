@@ -22,7 +22,7 @@
 | `changed.parquet` | 差分だけ。追加か差し替えをした版の `hash` | 1行 = 1版 |
 | `deleted.parquet` | 差分だけ。消えた版の `hash` | 1行 = 1版 |
 
-音源とメタ情報から作るビューは版単位（`maps`）、譜面から作るビューは譜面単位（`charts`）の行に対応します。譜面から作った特徴を版単位の行に入れることはしません（譜面ごとの違いが消えるため）。`play_style` は譜面のプレイスタイルで、当面は `characteristic` と同じ値です。`characteristic` だけで区別できないプレイスタイルが見つかったら、判定を OctantVector の中で足し、列の形は変えません。ジャンルの語（[推薦の定義](../plans/recommendation-definition.md)の Q2。最大 10 語程度）は、`role` が `genre` の版単位のビューとして持ちます。ベクトルの各次元が 1 つの語への近さで、語の並びはそのビューの `genres` に書きます。語の一覧と近さの測り方は未決です。音声が壊れたマップや埋め戻し中のビューでは全行がそろわないので、ビューごとに「ある行」の一覧を持ちます。旧版はベクトルを持たず、現行版に置き換えるための対応（`superseded.parquet`）だけを持ちます。Pass と Tech はスイングシミュレーションで計算した値で、計算できなかった譜面は空にします。どの版のシミュレーションで計算したかは、列ごとにマニフェストの `chartMetrics` に書きます。いまの OctantVector はまだ計算していないので、2 つの列は空で、`chartMetrics` は `{}` です（OctantVector の [dbrelease.py](https://github.com/BeatOctant/OctantVector/blob/main/src/octantvector/generation/dbrelease.py)）。曲名は推薦に使わない方針なので、DBには入れません（表示は MOD が BeatSaver から取ります）。
+音源とメタ情報から作るビューは版単位（`maps`）、譜面から作るビューは譜面単位（`charts`）の行に対応します。譜面から作った特徴を版単位の行に入れることはしません（譜面ごとの違いが消えるため）。`play_style` は譜面のプレイスタイルで、当面は `characteristic` と同じ値です。`characteristic` だけで区別できないプレイスタイルが見つかったら、判定を OctantVector の中で足し、列の形は変えません。ジャンルの語（[推薦の定義](../plans/recommendation-definition.md)の Q2。最大 10 語程度）は、`role` が `genre` の版単位のビューとして持ちます。ベクトルの各次元が 1 つの語への近さで、語の並びはそのビューの `genres` に書きます。語の一覧と近さの測り方は未決です。音声が壊れたマップや埋め戻し中のビューでは全行がそろわないので、ビューごとに「ある行」の一覧を持ちます。旧版はベクトルを持たず、現行版に置き換えるための対応（`superseded.parquet`）だけを持ちます。Pass と Tech はスイングシミュレーション（ビュー `swing_flow`。DB にビューとしては入れない）で計算した値で、計算できなかった譜面（別のプレイスタイル、ノーツが少なすぎるか多すぎる、誰も遊べない、zip が壊れている）は空にします。どのビューで埋めたかは、列ごとにマニフェストの `chartMetrics` に `id@version` で書きます（OctantVector の [dbrelease.py](https://github.com/BeatOctant/OctantVector/blob/main/src/octantvector/generation/dbrelease.py)。2026-10-29）。曲名は推薦に使わない方針なので、DBには入れません（表示は MOD が BeatSaver から取ります）。
 
 ## ビューの種類
 
@@ -40,7 +40,7 @@
 
 ## 役割名
 
-ビューの `role` は、そのビューが何を表すかの名前（札）です。推薦の要求と手札の重み（`weights`・`narrow`・`rank`）のキーはビューの id か id@version で、役割名では付けられません（2026-10-14、OctantVector 0.4.0。[契約1（OctantCompass・OctantHarvest → OctantVector）の手札が使えるとき](engine-runtime.md#手札が使えるとき)）。どの役割のビューが DB にあるかは、OctantCompass が `/v1/health` の `db.roles` で知らせ（[契約3（OctantPath ↔ OctantCompass）](mod-api.md)）、OctantPath は推薦の理由のビューを役割の名前で出すのに使います。役割は OctantVector 法 3.4 の同じ曲の見分け（`music`）、アーティストの上限（`artist`）、ジャンルの語（`genre`）、`weights` を省いたときの既定にも使います。
+ビューの `role` は、そのビューが何を表すかの名前（札）です。推薦の要求と手札の重み（`weights`・`narrow`・`rank`）のキーはビューの id か id@version で、役割名では付けられません（2026-10-14。[契約1（OctantCompass・OctantHarvest → OctantVector）の手札が使えるとき](engine-runtime.md#手札が使えるとき)）。どの役割のビューが DB にあるかは、OctantCompass が `/v1/health` の `db.roles` で知らせ（[契約3（OctantPath ↔ OctantCompass）](mod-api.md)）、OctantPath は推薦の理由のビューを役割の名前で出すのに使います。役割は OctantVector 法 3.4 の同じ曲の見分け（`music`）、アーティストの上限（`artist`）、ジャンルの語（`genre`）、`weights` を省いたときの既定にも使います。
 
 | 役割名 | 表すもの | 行 | 推薦での使い方 |
 | --- | --- | --- | --- |
@@ -99,7 +99,7 @@
       "credits": ["MusicBrainz artist IDs, https://musicbrainz.org/, core data under CC0", "ListenBrainz similar artists, …"]
     }
   },
-  "chartMetrics": {},
+  "chartMetrics": { "pass": "swing_flow@11", "tech": "swing_flow@11" },
   "presets": [
     { "id": "chart_genre", "group": "譜面", "label": "曲調も近いマップ", "inputs": [{ "kind": "seed" }],
       "handling": "narrow_then_rank", "knobs": { "narrow": { "clap_htsat_unfused": 0.5, "mert_v1_95m": 0.5 }, "rank": { "chart_patterns": 1 } } }
@@ -155,3 +155,4 @@
 | 1.1 | 2026-10-14 | 役割名を札にし、重みはビューの id で書くことにした（決定、OctantVector 0.4.0）。役割名に `vocal` を足した。形は変わらない |
 | 1.1 | 2026-10-18 | マニフェストに任意の `notice`（DB 全体の利用条件とクレジット）、ビューに任意の `credits` を足した（決定、OctantVector 0.7.0） |
 | 1.1 | 2026-10-20 | 役割名に `language`、`cover`、`mapper` を、関係のビューに `beatsaver_mappers@1` を、`norm` に `none` を足した。形は変わらない（決定、OctantVector 0.8.0） |
+| 1.1 | 2026-10-29 | `charts.parquet` の Pass と Tech を埋めるようにし、`chartMetrics` に埋めたビューを書くようにした。形は変わらない |

@@ -2,7 +2,7 @@
 
 > 固さ: 後から記録する層（[憲法の原則 10](../constitution.md#10-段階と文書の固さ)）。公開（リリース）の前は実装が先で、この文書を後から合わせます。
 
-版 1.0 · 境界: OctantHarvest → OctantVector · 実装する側: OctantVector · 形の正本: この文書の関数の表（JSON で受け渡す値がないため、スキーマはない）
+版 1.1 · 境界: OctantHarvest → OctantVector · 実装する側: OctantVector · 形の正本: この文書の関数の表（JSON で受け渡す値がないため、スキーマはない）
 
 ## 公開する関数
 
@@ -10,7 +10,7 @@ OctantHarvest は、収集した入力（[契約4（OctantHarvest の収集結�
 
 | 関数 | 入力 | 出力 |
 | --- | --- | --- |
-| `compute(input, store, views, params, pool, models_dir, log)` | 契約4（OctantHarvest の収集結果 → OctantVector）の収集結果、作業用の保存先、計算するビュー（`id` か `id@version`。必須。派生ビューの元も計算する）、数値、プールの名前（既定 `distribution`。[OctantVector の設定](../octantvector/config.md)のプール）、モデルのフォルダ、記録の書き先 | 足りない分だけを計算して保存先と台帳に書いた結果の件数（計算、失敗、飛ばし。ビューごとにも）。止めても続きから再開でき、続けて呼ぶと 2 回目は何も計算しない |
+| `compute(input, store, views, params, pool, models_dir, log)` | 契約4（OctantHarvest の収集結果 → OctantVector）の収集結果、作業用の保存先、計算するビュー（`id` か `id@version`。必須。派生ビューの元も計算する）、数値、プールの名前（既定 `distribution`。[OctantVector の設定](../octantvector/config.md)のプール）、モデルのフォルダ、記録の書き先 | 足りない分だけを計算して保存先と台帳に書いた結果の件数（計算、失敗、飛ばし、後回し。ビューごとにも）。譜面の指標（契約2（DB 生成 ↔ 推薦コア）の `charts.parquet` の Pass と Tech）の元のビューは、名指ししなくても計算する。GPU に空きがないときは一度に渡すマップを減らし、1 つでも入らないマップは書かずに後回し（`deferred`）にして次の呼び出しで計算する。止めても続きから再開でき、続けて呼ぶと 2 回目は何も計算しない |
 | `models(views)` | ビュー | そのビュー（と派生の元）が読むモデルの一覧（`repo`、`revision`、`files`、`models_dir` の下の `path`。`hf/<repo>/<revision>`）。呼ぶ側はこれを `compute` の前に `models_dir` へ置く（OctantHarvest の `octantharvest models`） |
 | `drift(store, base, params)` | 保存先、比べる配布 DB（全量）、数値 | ビューごとの、校正からのずれ。関係のビューは測らない。`base` に、入っているエンコーダ（プラグインを含む）のどれも計算しないベクトルのビューがあればエラー（プラグインの入れ忘れに気づくため） |
 | `calibrate(store, views, params)` | 保存先、ビュー、数値 | 新しい校正（JSON）。プールは `distribution` |
@@ -32,7 +32,7 @@ OctantHarvest は、収集した入力（[契約4（OctantHarvest の収集結�
 
 ## 版の付け方
 
-- 生成側の API の版は `octantvector.generation.API_VERSION`（`"1.0"` の形の文字列）で名乗る。推薦側の版とも、OctantVector のパッケージの版とも別に上がる。上げ方と、OctantHarvest が確かめて食い違ったときの扱いは[契約の版と食い違いの知らせ方](README.md#契約の版と食い違いの知らせ方)のとおり
+- 生成側の API の版は `octantvector.generation.API_VERSION`（`"1.1"` の形の文字列）で名乗る。推薦側の版とも、OctantVector のパッケージの版とも別に上がる。上げ方と、OctantHarvest が確かめて食い違ったときの扱いは[契約の版と食い違いの知らせ方](README.md#契約の版と食い違いの知らせ方)のとおり
 - OctantHarvest は実行の前に、メジャー版が同じで、自分が使う機能のあるマイナー版以上かを確かめる
 - OctantHarvest が import するのは `octantvector.generation` だけ。OctantVector は推薦側と同じく git のタグから入れる（[推薦側の版の付け方](engine-runtime.md#版の付け方)）
 
@@ -48,3 +48,5 @@ OctantHarvest は、収集した入力（[契約4（OctantHarvest の収集結�
 | 1.0 | 2026-10-17 | 全量を tar 1 つで手渡しする `pack` を足した（決定、OctantVector 0.6.0） |
 | 1.0 | 2026-10-18 | `release` に `notice` を足し、ビューごとのクレジットをマニフェストに書くようにした（決定、OctantVector 0.7.0） |
 | 1.0 | 2026-10-20 | `views` に関係のビュー `beatsaver_mappers` を名指しできるようにした。アーティストのファイルがないとき引き継ぐのは前の版の近いアーティストのビューだけにした（決定、OctantVector 0.8.0） |
+| 1.1 | 2026-10-25 | `compute` の結果に後回しの件数 `deferred` を足し、API の版を 1.1 にした |
+| 1.1 | 2026-10-29 | `compute` が譜面の指標の元のビューも計算し、`release` が `charts.parquet` の Pass と Tech を埋めるようにした |

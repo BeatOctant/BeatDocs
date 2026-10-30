@@ -2,7 +2,7 @@
 
 > 固さ: 後から記録する層（[憲法の原則 10](../constitution.md#10-段階と文書の固さ)）。作りの説明で、正本はコードです。
 
-OctantVector（0.5.0）の作りの説明です。実装が守る意味は [OctantVector 法](law.md)にあり、ここでは繰り返しません。
+OctantVector の作りの説明です。実装が守る意味は [OctantVector 法](law.md)にあり、ここでは繰り返しません。
 
 ## パッケージの構成
 
@@ -26,7 +26,7 @@ Runtime は設定ファイルを読まず（契約1（OctantCompass・OctantHarv
 - 同じマップの新しい版は台帳の新しい行として計算し、古い版は「旧版」にします。旧版のベクトルは配布物に入れませんが、台帳と作業用の保存先には残します（過去のプレイ記録が旧版の hash を指すため。2026-10-02 決定。配布物では旧版から今の版への対応だけを持ちます）。
 - メタ情報（タグ、ranked、キュレーションなど）は後から変わるので、メタ情報から作るビューは「版 + エンコーダが宣言したカタログの項目のダイジェスト」を入力として扱い、ダイジェストが変わった行だけ計算し直します。宣言していない項目（upvote 数など）が変わっても計算し直しません。
 - アーカイブに zip がまだない版は「メタ情報だけある」状態で台帳に入れ、zip が届いたら音源・譜面のビューを計算します。
-- 計算の対象は名前付きのプールで決めます。配布用（`distribution`）は公開中の全件で upvote の下限がなく、試し用（`trial`）は全件から決まった 20,000 マップを抜き取ったものです。音源と譜面のビューは、アーカイブに zip がある版だけを計算します。どのプールを計算するかは呼ぶ側が名指しします（`octantvector update --pool`、契約1 の `compute` の `pool`。校正と `release` は配布用）。エンコーダの段階（実験・候補・配布中・引退）はやめ、どのビューを計算して配るかは呼ぶ側（OctantHarvest の設定 `views`）が決めます（2026-10-14、OctantVector 0.4.0）。プールの定義は設定で変えたり足したりできます（[config.md](config.md)）。
+- 計算の対象は名前付きのプールで決めます。配布用（`distribution`）は公開中の全件で upvote の下限がなく、試し用（`trial`）は全件から決まった 20,000 マップを抜き取ったものです。音源と譜面のビューは、アーカイブに zip がある版だけを計算します。どのプールを計算するかは呼ぶ側が名指しします（`octantvector update --pool`、契約1 の `compute` の `pool`。校正と `release` は配布用）。エンコーダの段階（実験・候補・配布中・引退）はやめ、どのビューを計算して配るかは呼ぶ側（OctantHarvest の設定 `views`）が決めます（2026-10-14）。プールの定義は設定で変えたり足したりできます（[config.md](config.md)）。
 - 同じ版の zip は中身が変わらない前提で、最初に読んだときの SHA-256 を台帳に記録します。同じ hash で中身の違う zip が来たら使わずにエラーとして記録します（法 1.5）。
 
 ## 値の版
@@ -51,7 +51,7 @@ Runtime は設定ファイルを読まず（契約1（OctantCompass・OctantHarv
 - 基本の出力はビューごとの上位（`search --per-view`）で、重み付きの結合はその上の段です。結合の重みは問い合わせごとに変えられます。
 - ハブ（多くのマップの近傍に出てしまうマップ）を抑える CSLS は、開発用の `search` と評価コマンドにだけあります（`search` と `eval-personal` は既定で使い `--no-csls` で切る。`eval-neighbours` は `--csls` で使う）。推薦側の `recommend` は使いません（要るかは実験で決める。[open.md の V5](../open.md#octantvector)）。
 - 評価コマンド（`eval-neighbours`、`eval-personal`）は `--out` を付けると、問い合わせごとの結果を、使ったビューの `id@version`・指紋・重みと設定と一緒に保存します（形式は `src/octantvector/eval/results.py`）。後からモデル同士を比べるためです。
-- 各ビューには、何を表すかの札としての役割名（`role`。music・vocal・chart・meta・artist・genre。[契約2（DB 生成 ↔ 推薦コア）の役割名](../contracts/vector-db.md#役割名)）があります。既定は種類で決まり（`generation/encoders/base.py` の `ROLES`）、派生ビューは元のビューの役割を引き継ぎます。役割は定義に含めないので、変えても版は上げません。重みのキーには使いません（手札と要求はビューの id で名指しする。2026-10-14、OctantVector 0.4.0）。
+- 各ビューには、何を表すかの札としての役割名（`role`。music・vocal・chart・meta・artist・genre。[契約2（DB 生成 ↔ 推薦コア）の役割名](../contracts/vector-db.md#役割名)）があります。既定は種類で決まり（`generation/encoders/base.py` の `ROLES`）、派生ビューは元のビューの役割を引き継ぎます。役割は定義に含めないので、変えても版は上げません。重みのキーには使いません（手札と要求はビューの id で名指しする。2026-10-14）。
 
 ## 作業用の保存先と配布物
 
@@ -78,7 +78,7 @@ Runtime は設定ファイルを読まず（契約1（OctantCompass・OctantHarv
 - `build_index` は、渡された承認済みの版のフォルダだけから、版ごとの tar を上限以下に分けたファイルと索引 `index.json` を書きます。アップロードはしません。OctantVector 自身は通信しません。
 - ずれ（契約1 の `drift`）は、ビューごとに、今の配布用プールの平均が校正の平均からどれだけ動いたかを、校正の平均のまわりの広がりを 1 として測ります。関係のビューは測りません。前の版のベクトルのビューを計算するエンコーダが入っていなければ（プラグインの入れ忘れ）エラーで止めます。いつ測り、どこから校正し直すか、承認、毎日の実行は OctantHarvest が決めます。
 - まだ入っていないもの: `charts.parquet` の Pass と Tech（スイングシミュレーションの値が台帳にまだないので空、`chartMetrics` も空。[open.md の V4](../open.md#octantvector)）、索引の URL（置き場所は契約5 で未決。`build_index` に頭が渡されれば付けます）。
-- モデルのファイルは取りに行かず、OctantHarvest の `octantharvest models` が置いたものだけを読みます（契約1 の `models(views)`。OctantVector 0.4.0）。通信する部品を OctantHarvest に寄せ、取るものを 1 か所で記録するためです。音や画像のモデルを使うビュー（CLAP、MERT、WavLM とその歌声版、Whisper、SigLIP）は [OctantVectorPlugins](https://github.com/BeatOctant/OctantVectorPlugins) のプラグインに分け、使うものだけ入れます（[encoders.md](encoders.md)）。
+- モデルのファイルは取りに行かず、OctantHarvest の `octantharvest models` が置いたものだけを読みます（契約1 の `models(views)`。2026-10-14）。通信する部品を OctantHarvest に寄せ、取るものを 1 か所で記録するためです。音や画像のモデルを使うビュー（CLAP、MERT、WavLM とその歌声版、Whisper、SigLIP）は [OctantVectorPlugins](https://github.com/BeatOctant/OctantVectorPlugins) のプラグインに分け、使うものだけ入れます（[encoders.md](encoders.md)）。
 
 ## 推薦
 

@@ -38,13 +38,26 @@
       "x-defaultIn": "OctantVector"
     },
     "narrowWiden": {
-      "description": "narrow で残したマップが count に足りないとき、narrowTopMaps に掛けて広げる倍率（足りるか全部入るまで繰り返す。まれなプレイスタイルの譜面のため）。仮の値で既定は 3（2026-10-13。OctantVector 0.3.28 の実装に合わせて記録）",
+      "description": "narrow で残したマップが count に足りないとき、narrowTopMaps に掛けて広げる倍率（足りるか全部入るまで繰り返す。まれなプレイスタイルの譜面のため）。仮の値（2026-10-13）",
       "type": "integer",
       "minimum": 2,
       "x-defaultIn": "OctantVector"
     },
     "seedTasteWeight": {
       "description": "起点の譜面があるとき、その人の好みを混ぜる割合",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "chainEvery": {
+      "description": "起点があるとき、何マップごとに起点を動かすか（連想型）。その数のマップを選ぶたびに、次に選ぶはずのマップを見せずに新しい起点にし、残りをそれに近い順に選ぶ。絞り込み、難易度合わせ、同じ曲とアーティストの上限は一覧全体にかかり、候補の理由はその候補を選んだ起点からのもの。0 なら動かさない。起点がなければ何もしない（2026-10-29）",
+      "type": "integer",
+      "minimum": 0,
+      "x-defaultIn": "OctantVector"
+    },
+    "chainFirstWeight": {
+      "description": "起点を動かしたあとも、最初の起点への近さを残す割合。0 なら残さない",
       "type": "number",
       "minimum": 0,
       "maximum": 1,
@@ -67,6 +80,12 @@
       "type": "number",
       "minimum": -1,
       "maximum": 1,
+      "x-defaultIn": "OctantVector"
+    },
+    "mixPriorDrafts": {
+      "description": "要求の mix で、手札ごとの残した割合を、すべての手札の平均へ寄せる強さ（推薦の件数。plans/personal-data-overfitting.md の n0）",
+      "type": "number",
+      "minimum": 0,
       "x-defaultIn": "OctantVector"
     },
     "features": {
@@ -109,7 +128,7 @@
       "x-defaultIn": "plans/difficulty-fit.md#設定"
     },
     "directionShrinkPlays": {
-      "description": "学んだ苦手な向きの重みと設定の重みが半々になる、最近のプレイ（クリアと失敗）の数 n0。仮の値で既定は 100（OctantVector 0.5.0）",
+      "description": "学んだ苦手な向きの重みと設定の重みが半々になる、最近のプレイ（クリアと失敗）の数 n0。仮の値（2026-10-15）",
       "type": "number",
       "minimum": 0,
       "x-defaultIn": "OctantVector"
@@ -144,6 +163,46 @@
       "minimum": 0,
       "maximum": 1,
       "x-defaultIn": "plans/difficulty-fit.md#設定"
+    },
+    "ceiling": {
+      "description": "足切りを使うか。真なら、ceilingFeatures のどれかで本人の上限を超える譜面と、floorFeatures のどれかで下限を下回る譜面を、狙いと別に、どの手札でも外し、広げて戻さない。挑戦の狙いは、狙いの近くに足りないとき上限の下で一番難しいものを取る。値のない譜面は残す（2026-10-25）",
+      "type": "boolean",
+      "x-defaultIn": "OctantVector"
+    },
+    "ceilingFeatures": {
+      "description": "上限を決める譜面の指標（契約2（DB 生成 ↔ 推薦コア）の charts.parquet の列。pass、tech）。DB にない指標は使わない",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-defaultIn": "OctantVector"
+    },
+    "ceilingPercentile": {
+      "description": "上限にする、そのプレイスタイルの最近のクリアでのパーセンタイル。最近のクリアは修飾なしの自分のクリア（譜面ごとに 1 つ、新しい順に strongRecentClears まで）で、足りなければ PlayerData のクリア（imported_play の cleared）で埋める",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "x-defaultIn": "OctantVector"
+    },
+    "floorFeatures": {
+      "description": "下限を決める譜面の指標（ceilingFeatures と同じ名前）",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-defaultIn": "OctantVector"
+    },
+    "floorBelowMedian": {
+      "description": "下限を、最近のクリアの中央値からどれだけ下げるか",
+      "type": "number",
+      "minimum": 0,
+      "x-defaultIn": "OctantVector"
+    },
+    "ceilingMinClears": {
+      "description": "上限と下限を決めるのに要る、そのプレイスタイルの最近のクリアの数。足りないプレイスタイルには付けない",
+      "type": "integer",
+      "minimum": 1,
+      "x-defaultIn": "OctantVector"
     }
   }
 }

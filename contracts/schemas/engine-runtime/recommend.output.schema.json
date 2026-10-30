@@ -165,6 +165,14 @@
               }
             }
           ]
+        },
+        "hand": {
+          "description": "要求が mix のときだけ。その候補を出した手札の id",
+          "type": "string"
+        },
+        "genre": {
+          "description": "要求の genre か genreFrom で一覧を絞ったときだけ。絞った語（genreFrom なら選んだ語）",
+          "type": "string"
         }
       }
     }

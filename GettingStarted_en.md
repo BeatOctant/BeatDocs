@@ -16,7 +16,7 @@ BeatOctant recommends what to play next in Beat Saber, based on your own play hi
 | Item | Requirement |
 | --- | --- |
 | OS | Windows 10 or 11 (uses WebView2; not tested) or Linux |
-| Beat Saber | 1.40.8 (the version tested) |
+| Beat Saber | The version under "Works with" in the OctantPath release notes (the version tested) |
 | Memory | 2 GB or more free besides the game (OctantCompass loads the DB) |
 | Disk | About twice the DB file's size free (the import unpacks it) |
 | Linux: Beat Saber | Run through Steam's Proton |
@@ -26,14 +26,16 @@ BeatOctant recommends what to play next in Beat Saber, based on your own play hi
 
 ### Mods
 
-| Mod | Version | |
-| --- | --- | --- |
-| BSIPA | 4.3.6 or later | Required |
-| SiraUtil | 3.2.1 or later | Required |
-| BeatSaberMarkupLanguage | 1.12.5 or later | Required |
-| SongCore | 3.15.3 or later | Required |
-| BeatSaberPlaylistsLib | 1.7.2 or later | Required |
-| BeatSaverVoting | Tested with 2.4.6 | Optional. Upvotes and downvotes are used for recommendations and for keeping or deleting downloaded songs |
+Install the versions that match your game version (the ones your mod manager picks). The lowest versions of the required mods are in `dependsOn` of the OctantPath mod's `manifest.json`.
+
+| Mod | |
+| --- | --- |
+| BSIPA | Required |
+| SiraUtil | Required |
+| BeatSaberMarkupLanguage | Required |
+| SongCore | Required |
+| BeatSaberPlaylistsLib | Required |
+| BeatSaverVoting | Optional. Upvotes and downvotes are used for recommendations and for keeping or deleting downloaded songs |
 
 ## What you get
 

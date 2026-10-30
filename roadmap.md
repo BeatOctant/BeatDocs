@@ -11,7 +11,7 @@ BeatOctant の段階ごとに、何が済んでいて何が残っているかの
 誰でも取れる不安定版です（2026-10-24 から）。MOD・OctantCompass・OctantPath Desktop・DB はそれぞれの版で出し、支えるのは各部品の最新の版どうしの組み合わせだけです。利用者に約束するのは「OctantPath のプレイの記録を黙って消さない」だけです（2026-10-21・2026-10-22、[decisions.md](decisions.md#全体と段階)）。
 
 - 推薦の流れ（OctantPath の MOD と OctantPath Desktop → OctantCompass → OctantVector）と、DB を作る流れ（OctantHarvest → OctantVector と OctantVectorPlugins → 配布 DB）は、どちらも動いている
-- 署名した配布 DB の全量を作れる（OctantVector 0.4.0 から。[契約5 の非公開と Dev 版の扱い](contracts/distribution.md#非公開探求中の扱い)）
+- 署名した配布 DB の全量を作れる（2026-10-14 から。[契約5 の非公開と Dev 版の扱い](contracts/distribution.md#非公開探求中の扱い)）
 - 利用者向けの文書（[GettingStarted_ja.md](GettingStarted_ja.md)・[GettingStarted_en.md](GettingStarted_en.md)）がある
 - ソースの写しは Organization（BeatOctant）に `tools/mirror.py` で置く（2026-10-23）。写しは PR と Issue を受けず、報告は Discord で受ける（2026-10-22）
 

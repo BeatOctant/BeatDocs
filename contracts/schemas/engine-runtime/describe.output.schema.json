@@ -36,7 +36,7 @@
           "typicalDistance": { "description": "得意な譜面どうしの、ふつうの距離", "type": "number" },
           "clearCurve": { "description": "クリアできる見込みの曲線を作れたか", "type": "boolean" },
           "weakDirections": {
-            "description": "苦手な向き（例: NJS が遅い譜面）。重い順。最近の失敗が params の minFailsForCurve 未満のとき、またはどの向きも「落ち方 − 標準誤差」が全向きの平均の落ち方を超えないときは空（OctantVector 0.5.0）",
+            "description": "苦手な向き（例: NJS が遅い譜面）。重い順。最近の失敗が params の minFailsForCurve 未満のとき、またはどの向きも「落ち方 − 標準誤差」が全向きの平均の落ち方を超えないときは空（2026-10-15）",
             "type": "array",
             "items": {
               "type": "object",

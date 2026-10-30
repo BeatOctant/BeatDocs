@@ -2,7 +2,7 @@
 
 > 固さ: 後から記録する層（[憲法の原則 10](../constitution.md#10-段階と文書の固さ)）。値の正本はコード（`config.py` の `DEFAULTS`）です。
 
-OctantVector（0.5.0）の設定の受け取り方です。各設定の名前・既定値・意味は [`src/octantvector/generation/config.py` の `DEFAULTS`](https://github.com/BeatOctant/OctantVector/blob/main/src/octantvector/generation/config.py) にまとめてあり、値はそこにしか書いていません。
+OctantVector の設定の受け取り方です。各設定の名前・既定値・意味は [`src/octantvector/generation/config.py` の `DEFAULTS`](https://github.com/BeatOctant/OctantVector/blob/main/src/octantvector/generation/config.py) にまとめてあり、値はそこにしか書いていません。
 
 ## 読み込みの順
 

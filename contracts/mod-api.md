@@ -91,3 +91,4 @@ MOD と OctantCompass は互いの版を知っているので、どちらを上�
 | 2.0 | 2026-10-22 | signal の通し番号をやめた（決定）。OctantCompass は signal を動いている間だけメモリに持ち、OctantPath は `PUT /v1/signals` で正本を丸ごと送って置き換え、あとは `POST` で足す。`/v1/health` の `lastSeq` を `instanceId`（起動を表す値）と `signals`（件数）に、応答の `lastSeq` を `count` に替え、event の `seq`、`rejected` の `sequence_gap` と `invalid_seq`、409 `signal_conflict`、版にない `type` で止める決まりを消した。互換がないのでメジャー版を上げた |
 | 2.0 | 2026-10-23 | エンドポイントの表に `PUT /v1/signals` を足し、認証の行の管理画面を管理 API（`/manage/`）にした。形は変わらない |
 | 2.0 | 2026-10-24 | `imported_play` に任意の `cleared`（PlayerData にその譜面のスコアがある）を足した。省いても今までどおりで、知らない項目は無視するので版は上げない |
+| 2.0 | 2026-10-30 | 手札に任意の `genreLabels`、候補の理由に任意の `hand` と `genre`（契約1（OctantCompass・OctantHarvest → OctantVector）の 1.1）、`recommendation` の event に任意の `hand` を足した。省いても今までどおりで、知らない項目は無視するので版は上げない |

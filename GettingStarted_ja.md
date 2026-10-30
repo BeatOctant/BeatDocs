@@ -16,7 +16,7 @@ BeatOctant は、Beat Saber で次に遊ぶ曲を、あなたのプレイの記�
 | 項目 | 要求 |
 | --- | --- |
 | OS | Windows 10・11（WebView2 を使う。動作は確かめていません）または Linux |
-| Beat Saber | 1.40.8（動作を確かめた版） |
+| Beat Saber | OctantPath のリリースの本文の「Works with」に書いた版（動作を確かめた版） |
 | メモリ | ゲームのほかに 2 GB 以上の空き（OctantCompass が DB を読み込む） |
 | ディスク | DB のファイルの 2 倍ほどの空き（取り込みで展開する） |
 | Linux: Beat Saber | Steam の Proton で動かす |
@@ -26,14 +26,16 @@ BeatOctant は、Beat Saber で次に遊ぶ曲を、あなたのプレイの記�
 
 ### MOD
 
-| MOD | 版 | |
-| --- | --- | --- |
-| BSIPA | 4.3.6 以上 | 必須 |
-| SiraUtil | 3.2.1 以上 | 必須 |
-| BeatSaberMarkupLanguage | 1.12.5 以上 | 必須 |
-| SongCore | 3.15.3 以上 | 必須 |
-| BeatSaberPlaylistsLib | 1.7.2 以上 | 必須 |
-| BeatSaverVoting | 2.4.6 で確認 | 任意。Upvote・Downvote を推薦と、取った曲を残す・消す判断に使う |
+どれもゲームの版に合うものを入れます（MOD の管理ツールが選ぶもの）。必須の MOD の下限の版は、OctantPath の MOD の `manifest.json` の `dependsOn` にあります。
+
+| MOD | |
+| --- | --- |
+| BSIPA | 必須 |
+| SiraUtil | 必須 |
+| BeatSaberMarkupLanguage | 必須 |
+| SongCore | 必須 |
+| BeatSaberPlaylistsLib | 必須 |
+| BeatSaverVoting | 任意。Upvote・Downvote を推薦と、取った曲を残す・消す判断に使う |
 
 ## 取るもの
 

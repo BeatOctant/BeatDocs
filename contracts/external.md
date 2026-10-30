@@ -85,7 +85,7 @@
 - 使う場所: OctantPath Desktop の譜面のプレビュー
 - 変換先: 変換なし
 - 扱い:
-  - 初回の起動で、deploy ブランチの決めたコミット（0.8.1）のビルドを raw.githubusercontent.com から取り、ファイルごとに大きさと SHA-256 を照合する
+  - 初回の起動で、deploy ブランチの決めたコミット（コミットと版は OctantPath の `ArcViewerMirror.cs`）のビルドを raw.githubusercontent.com から取り、ファイルごとに大きさと SHA-256 を照合する
   - 合わなければ何も残さない
   - そのときはプレビューを出さず、公開サイト（allpoland.github.io）には切り替えない（2026-10-16。切り替えると ArcViewer がブラウザから BeatSaver の API と CDN を引き、上の User-Agent と間隔の外になるため）
   - マップは Desktop が手元の zip を渡す

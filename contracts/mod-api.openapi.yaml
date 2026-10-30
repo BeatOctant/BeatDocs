@@ -398,7 +398,7 @@ components:
             type: array
             items:
               type: string
-          description: 役割名（契約2（DB 生成 ↔ 推薦コア）の役割名）をキーにし、その役割のビューの `id@version` の配列を値にした辞書。DB にない役割は入らない。重みのキーには使えず（OctantVector 0.4.0）、OctantPath は推薦の理由のビューを役割の名前で出すのに使う。
+          description: 役割名（契約2（DB 生成 ↔ 推薦コア）の役割名）をキーにし、その役割のビューの `id@version` の配列を値にした辞書。DB にない役割は入らない。重みのキーには使えず（2026-10-14）、OctantPath は推薦の理由のビューを役割の名前で出すのに使う。
         genres:
           type: array
           items:
@@ -502,6 +502,11 @@ components:
         group:
           $ref: "#/components/schemas/LocalizedText"
           description: "任意。ボタンをまとめる見出し（例: 曲、譜面、あなたへ）。同じ見出しの手札は一覧で続けて並ぶ。MOD は見出しで分けて見せてよい。"
+        genreLabels:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/LocalizedText"
+          description: 任意。手札が履歴からジャンルの語を選ぶとき（契約1（OctantCompass・OctantHarvest → OctantVector）の `genreFrom`）の、語ごとの表示名。キーは DB にある語だけで、形の違う値は外す。MOD は候補の理由の `genre` をこれで表示名にする（2026-10-30）。
         inputs:
           type: array
           items:

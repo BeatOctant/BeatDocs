@@ -76,6 +76,10 @@
       "type": "string",
       "description": "任意。recommendation の、元になった推薦の要求で使ったプリセットの id（POST /v1/recommendations の preset）。OctantCompass のキャッシュを失っても、どのプリセットの推薦だったかが分かるように残す（2026-10-12）。"
     },
+    "hand": {
+      "type": "string",
+      "description": "任意。recommendation の、複数の手札を混ぜた推薦（扱い方 mixed）で、その譜面を出した手札の id（推薦の候補の理由の hand）。OctantVector は手札ごとの反応をこれで数え、ないときは preset で数える（2026-10-29）。"
+    },
     "stage": {
       "type": "string",
       "description": "recommendation の段階（shown、downloaded、selected など）。",
